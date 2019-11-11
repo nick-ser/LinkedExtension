@@ -6,7 +6,7 @@ let	_minW = 100, // The exact value get's calculated
 	_minH = 1, // The exact value get's calculated
 	_resizePixel = 5,
 	_hasEventListeners = !!window.addEventListener,
-	_parent,
+    _last_known_scroll_position = 0,
     _dialog,
     _prevHeight = Number.NaN,
     _prevWidth = Number.NaN,
@@ -197,11 +197,12 @@ let	_minW = 100, // The exact value get's calculated
 				else
 					scrollL = _maxX - window.innerWidth + 20;
 			}
-			window.scrollTo(scrollL, scrollT);
+            window.scrollTo(scrollL, scrollT);
+            saveDialogSettings();
 		}
 		else if (_isResize) {
 			var dw, dh, w, h;
-			if (_resizeMode == 'w') {
+            if (_resizeMode == 'w') {
 				dw = _startX - evt.pageX;
 				if (_leftPos - dw < 0)
 					dw = _leftPos;
@@ -213,7 +214,7 @@ let	_minW = 100, // The exact value get's calculated
 				_dialog.style.width = w + 'px';
 				_dialog.style.left = (_leftPos - dw) + 'px'; 
 			}
-			else if (_resizeMode == 'e') {
+            else if (_resizeMode == 'e') {
 				dw = evt.pageX - _startX;
 				if (_leftPos + _startW + dw > _maxX)
 					dw = _maxX - _leftPos - _startW;
@@ -222,7 +223,7 @@ let	_minW = 100, // The exact value get's calculated
 					w = _minW;
 				_dialog.style.width = w + 'px';
 			}
-			else if (_resizeMode == 'n') {
+            else if (_resizeMode == 'n') {
 				dh = _startY - evt.pageY;
 				if (_topPos - dh < 0)
 					dh = _topPos;
@@ -234,7 +235,7 @@ let	_minW = 100, // The exact value get's calculated
 				_dialog.style.height = h + 'px';
 				_dialog.style.top = (_topPos - dh) + 'px';
 			}
-			else if (_resizeMode == 's') {
+            else if (_resizeMode == 's') {
 				dh = evt.pageY - _startY;
 				if (_topPos + _startH + dh > _maxY)
 					dh = _maxY - _topPos - _startH;
@@ -243,7 +244,7 @@ let	_minW = 100, // The exact value get's calculated
 					h = _minH;
 				_dialog.style.height = h + 'px';
 			}
-			else if (_resizeMode == 'nw') {
+            else if (_resizeMode == 'nw') {
 				dw = _startX - evt.pageX;
 				dh = _startY - evt.pageY;
 				if (_leftPos - dw < 0)
@@ -265,7 +266,7 @@ let	_minW = 100, // The exact value get's calculated
 				_dialog.style.left = (_leftPos - dw) + 'px'; 
 				_dialog.style.top = (_topPos - dh) + 'px';
 			}
-			else if (_resizeMode == 'sw') {
+            else if (_resizeMode == 'sw') {
 				dw = _startX - evt.pageX;
 				dh = evt.pageY - _startY;
 				if (_leftPos - dw < 0)
@@ -284,7 +285,7 @@ let	_minW = 100, // The exact value get's calculated
 				_dialog.style.height = h + 'px';
 				_dialog.style.left = (_leftPos - dw) + 'px'; 
 			}
-			else if (_resizeMode == 'ne') {
+            else if (_resizeMode == 'ne') {
 				dw = evt.pageX - _startX;
 				dh = _startY - evt.pageY;
 				if (_leftPos + _startW + dw > _maxX)
@@ -303,7 +304,7 @@ let	_minW = 100, // The exact value get's calculated
 				_dialog.style.height = h + 'px';
 				_dialog.style.top = (_topPos - dh) + 'px';
 			}
-			else if (_resizeMode == 'se') {
+            else if (_resizeMode == 'se') {
 				dw = evt.pageX - _startX;
 				dh = evt.pageY - _startY;
 				if (_leftPos + _startW + dw > _maxX)
@@ -317,10 +318,12 @@ let	_minW = 100, // The exact value get's calculated
 				if (h < _minH)
 					h = _minH;
 				_dialog.style.width = w + 'px';
-				_dialog.style.height = h + 'px';
-			}
-			_setDialogContent();
-		}
+                _dialog.style.height = h + 'px';
+                _setDialogContent();
+            }
+            resizeDialogTitle();
+            saveDialogSettings();
+        }
 		else if (!_isButton) {
 			var cs, rm = '';
 			if (evt.target === _dialog || evt.target === _dialogTitle || evt.target === _buttons[0]) {
@@ -361,9 +364,15 @@ let	_minW = 100, // The exact value get's calculated
 				//_whichButton.classList.remove('hover');
 				_isButtonHovered = false;
 			}
-		}
+        }
 		return _returnEvent(evt);
 	};
+
+    function resizeDialogTitle() {
+        if (_dialogTitle != null) {
+            _dialogTitle.style.width = parseFloat(_dialog.style.width) - 32 + 'px';
+        }
+    };
 	
     _onMouseUp = function (evt) {
         evt = evt || window.event;
@@ -405,8 +414,6 @@ let	_minW = 100, // The exact value get's calculated
         _dialog.style.minWidth = 203 + 'px';
         _dialog.style.width = 203 + 'px';
         
-        _dialog.style.left = 0 + 'px';
-        _dialog.style.top = window.scrollY + 51  + 'px';
         _dialogContent.style.visibility = 'hidden';
         _dialogContent.style.display = 'none';
 
@@ -428,7 +435,6 @@ let	_minW = 100, // The exact value get's calculated
             _dialog.style.width = _dialog.style.minWidth;
         else
             _dialog.style.width = _prevWidth;
-        _dialog.style.left = '0px';
         _dialog.style.top = (window.innerHeight - (window.innerHeight - _dialog.style.height) + window.scrollY) - 51 + 'px';
         _dialogContent.style.visibility = 'visible';
         _dialogContent.style.display = 'block';
@@ -447,8 +453,9 @@ let	_minW = 100, // The exact value get's calculated
             if (_isMinimized == false)
                 _minimizeDialogContent();
             else
-                _maximizeDialogContent();
+                _maximizeDialogContent();            
             _isMinimized = !_isMinimized;
+            saveDialogSettings();
         }
         if (btn.name === 'collect')
         {
@@ -472,9 +479,7 @@ let	_minW = 100, // The exact value get's calculated
                     div.style.display = "block";
                     var generalPageBtn = document.querySelector(".generalPageBtn");
                     generalPageBtn.onclick = function () {
-                        chrome.runtime.sendMessage({ greeting: SetUrlRequest }, function (response) {
-                            console.log(response.farewell);
-                        });
+                        chrome.runtime.sendMessage({ greeting: SetUrlRequest });
                     }
                     var closeBtn = document.querySelector(".close-btn");
                     closeBtn.onclick = function () {
@@ -572,22 +577,21 @@ let	_minW = 100, // The exact value get's calculated
 		_buttons = _dialog.querySelectorAll('button');  // Ensure to get minimal width
 
 		// Let's try to get rid of some of constants in javascript but use values from css
-		var _dialogStyle = getComputedStyle(_dialog),
-			_dialogTitleStyle = getComputedStyle(_dialogTitle),
-			_dialogContentStyle = getComputedStyle(_dialogContent),
-			_dialogButtonPaneStyle,
-			_dialogButtonPaneStyleBefore,
-			_dialogButtonStyle;
+		var dialogStyle = getComputedStyle(_dialog),			
+			dialogContentStyle = getComputedStyle(_dialogContent),
+			dialogButtonPaneStyle,
+			dialogButtonPaneStyleBefore,
+			dialogButtonStyle;
 		if (_buttons.length > 1) {
-			_dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane);
-			_dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before");
-			_dialogButtonStyle = getComputedStyle(_buttons[1]);
+			dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane);
+			dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before");
+			dialogButtonStyle = getComputedStyle(_buttons[1]);
 		}
         
 		// Calculate minimal width
 		_minW = Math.max(_dialog.clientWidth, _minW, 
 			+ (_buttons.length > 1 ? 
-				+ (_buttons.length - 1) * parseInt(_dialogButtonStyle.width) // .dialog .buttonset button { width: 64px; }
+				+ (_buttons.length - 1) * parseInt(dialogButtonStyle.width) // .dialog .buttonset button { width: 64px; }
 				+ (_buttons.length - 1 - 1) * 16 // .dialog .buttonset button { margin-left: 16px; } // but not for first-child
 				+ (_buttons.length - 1 - 1) * 16 / 2 // The formula is not correct, however, with fixed value 16 for margin-left: 16px it works
 				: 0 )
@@ -596,31 +600,28 @@ let	_minW = 100, // The exact value get's calculated
 		
 		// Calculate minimal height
 		_minH = Math.max(_dialog.clientHeight, _minH, 
-			+ parseInt(_dialogContentStyle.top) // .dialog .content { top: 48px } 
-			+ (2 * parseInt(_dialogStyle.border)) // .dialog { border: 1px }
+			+ parseInt(dialogContentStyle.top) // .dialog .content { top: 48px } 
+			+ (2 * parseInt(dialogStyle.border)) // .dialog { border: 1px }
 			+ 16 // ?
 			+ 12 // .p { margin-block-start: 1em; } // default
 			+ 12 // .dialog { font-size: 12px; } // 1em = 12px
 			+ 12 // .p { margin-block-end: 1em; } // default
 			+(_buttons.length > 1 ?
-				+ parseInt(_dialogButtonPaneStyleBefore.borderBottom) // .dialog .buttonpane:before { border-bottom: 1px; }
-				- parseInt(_dialogButtonPaneStyleBefore.top) // .dialog .buttonpane:before { height: 0; top: -16px; }
-				+ parseInt(_dialogButtonPaneStyle.height) // .dialog .buttonset button { height: 32px; }
-				+ parseInt(_dialogButtonPaneStyle.bottom) // .dialog .buttonpane { bottom: 16px; }
+				+ parseInt(dialogButtonPaneStyleBefore.borderBottom) // .dialog .buttonpane:before { border-bottom: 1px; }
+				- parseInt(dialogButtonPaneStyleBefore.top) // .dialog .buttonpane:before { height: 0; top: -16px; }
+				+ parseInt(dialogButtonPaneStyle.height) // .dialog .buttonset button { height: 32px; }
+				+ parseInt(dialogButtonPaneStyle.bottom) // .dialog .buttonpane { bottom: 16px; }
 				: 0 )
 			);
 		_dialog.style.height = _minH + 'px';
 
-		_setDialogContent();
-		
-		// center the dialog box
-		//_dialog.style.left = ((window.innerWidth - _dialog.clientWidth) / 2) + 'px';
-		//_dialog.style.top = ((window.innerHeight - _dialog.clientHeight) / 2) + 'px';
+		_setDialogContent();		
 		
 		_dialog.style.display = 'none'; // Let's hide it again..
 		_dialog.style.visibility = 'visible'; // and undo visibility = 'hidden'
 
-		_dialogTitle.tabIndex = '0';
+        _dialogTitle.tabIndex = '0';
+        loadDialogSettings();
 
 		_tabBoundary = document.createElement('div');
 		_tabBoundary.tabIndex = '0';
@@ -645,13 +646,71 @@ let	_minW = 100, // The exact value get's calculated
 		_addEvent(_dialogTitle, 'focus', _adjustFocus);
 		_addEvent(_tabBoundary, 'focus', _adjustFocus);
 
-		_zIndex = _dialog.style.zIndex;
-	};
+        _zIndex = _dialog.style.zIndex;        
+    };
 
-	// Execute constructor
+    function calcDialogPos(scroll_pos) {        
+        if (_dialog != null) {
+            var top = parseFloat(customDialog.style.top);
+            if (isNaN(top))
+                top = 50;
+            _dialog.style.top = scroll_pos + top + 'px';
+            saveDialogSettings();
+        }
+    };
+
+    window.addEventListener('scroll', function (e) {
+        var tmp = _last_known_scroll_position;
+        _last_known_scroll_position = window.scrollY;
+        calcDialogPos(_last_known_scroll_position - tmp);
+    });
+
+    function saveDialogSettings() {
+        if (_dialog != null) {
+            chrome.storage.local.set({ 'relativeTop': (parseFloat(_dialog.style.top) - window.scrollY) / window.innerHeight });
+            chrome.storage.local.set({ 'relativeLeft': (parseFloat(_dialog.style.left) - window.scrollX) / window.innerWidth });            
+            chrome.storage.local.set({ 'dialogState': _isMinimized });
+            chrome.storage.local.set({ 'dialogHeight': _dialog.style.height });
+            chrome.storage.local.set({ 'dialogWidth': _dialog.style.width });
+        }
+    };
+
+    function loadDialogSettings(){
+        if (_dialog != null) {
+            chrome.storage.local.get('dialogState', function (result) {
+                _isMinimized = result.dialogState;
+                if (_isMinimized == false)
+                    _maximizeDialogContent();
+                else
+                    _minimizeDialogContent();
+                _isMinimized != _isMinimized;
+            });
+
+            chrome.storage.local.get('relativeTop', function (result) {
+                var relativeTop = result.relativeTop;
+                _dialog.style.top = window.innerHeight * relativeTop + window.scrollY + 'px';
+            });
+
+            chrome.storage.local.get('relativeLeft', function (result) {
+                var relativeLeft = result.relativeLeft;
+                _dialog.style.left = window.innerWidth * relativeLeft + window.scrollX + 'px';
+            });
+
+            chrome.storage.local.get('dialogHeight', function (result) {
+                _dialog.style.height = result.dialogHeight;
+            });
+
+            chrome.storage.local.get('dialogWidth', function (result) {                
+                _dialog.style.width = result.dialogWidth;
+                resizeDialogTitle();
+            });
+        }
+    };
+
+    // Execute constructor
 	_init(id, callback);
 
 	// Public interface 
-	this.showDialog = _showDialog;
+    this.showDialog = _showDialog;
 	return this;
 }
