@@ -1,6 +1,8 @@
-chrome.runtime.onMessage.addListener(request => {
-    if (request.type === 'linkedOpened' && dialog == null)
-    {
+chrome.runtime.onMessage.addListener(request =>
+{
+    var _dialog;
+    if (request.type === 'linkedOpened' && _dialog == null)
+    {        
         prevHeight = window.innerHeight;
         prevWidth = window.innerWidth;
         var div = document.createElement('div')
@@ -13,13 +15,14 @@ chrome.runtime.onMessage.addListener(request => {
                 <button name="minimize">-</button>
                 <div class="content">
                     <button name="collect">Collect</button>
+                    <button name="cancel">Cancel</button>
                 </div>
                 <div class="buttonpane">
                 </div>`;
         document.body.appendChild(div);
         
-        var dialog = new DialogBox('customDialog', callbackDialog);
-        dialog.showDialog();
+        _dialog = new DialogBox('customDialog', callbackDialog);
+        _dialog.showDialog();
     }
 });
 
