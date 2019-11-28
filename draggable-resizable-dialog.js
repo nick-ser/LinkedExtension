@@ -515,44 +515,15 @@ function DialogBox(id, callback)
             saveDialogSettings();
         }
         if (btn.name === "cancel")
-            _isCanceled = true;
-
+        {
+            _isCanceled = true;            
+        }            
+        
         if (btn.name === 'collect')
         {
             if (window.location.toString().indexOf("linkedin.com/search/results/people/") == -1)
             {
                 _invitaionDlg.showInvitationDialog();
-                //var dlg = document.querySelector(".modalInvitationDlg");
-                //if (dlg == null)
-                //{
-                //    var div = document.createElement('div')
-                //    div.style.zIndex = 1;
-                //    div.className = 'modalInvitationDlg';
-                //    div.innerHTML = `<div class="modal-content">
-                //        <p align="center">From which page do you want to collect</p>
-                //        <div class="buttons">
-                //          <button class="generalPageBtn" name="collect">Go to General LinkedIn Search Page</button>
-                //        </div>
-                //        <div class="cancelpane">
-                //          <button class="close-btn" name="cancel">Cancel</button>
-                //        </div>
-                //    </div>`;
-                //    document.body.appendChild(div);
-                //    div.style.display = "block";
-                //    var generalPageBtn = document.querySelector(".generalPageBtn");
-                //    generalPageBtn.onclick = function ()
-                //    {
-                //        chrome.runtime.sendMessage({ greeting: "SetUrl" });
-                //    }
-                //    var closeBtn = document.querySelector(".close-btn");
-                //    closeBtn.onclick = function ()
-                //    {
-                //        div.style.display = "none"
-                //    }
-                //}
-                //else
-                //    dlg.style.display = "block";
-
                 btn.state = CollectStateEnum.chooseSource;
             }
             else if (btn.state == undefined || btn.state == CollectStateEnum.chooseSource)
@@ -858,6 +829,31 @@ function DialogBox(id, callback)
                 resizeDialogTitle();
             });
         }
+    };
+
+    //I won LinkedIn's god damn div input!!!
+    function SetTextToLinkedinInput(div, text)
+    {
+        div.innerHTML = "<p>" + text + "</p>";
+        function simulateKey(keyCode, type, modifiers)
+        {
+            var evtName = (typeof (type) === "string") ? "key" + type : "keydown";
+            var modifier = (typeof (modifiers) === "object") ? modifier : {};
+            var event = document.createEvent("HTMLEvents");
+            event.initEvent(evtName, true, false);
+            event.keyCode = keyCode;
+            for (var i in modifiers)
+                event[i] = modifiers[i];
+            div.dispatchEvent(event);
+        }
+        simulateKey(38);
+        simulateKey(38, "up");
+        var event = new Event('input',
+        {
+            bubbles: true,
+            cancelable: true,
+        });
+        div.dispatchEvent(event);
     };
 
     // Execute constructor
