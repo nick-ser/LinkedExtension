@@ -1,6 +1,10 @@
 function DialogBox(id, callback)
 {
-    const CollectStateEnum = Object.freeze({ "chooseSource": 1, "collect": 2, "stopCollection": 3 })
+    const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3 })
+    const DocumentScrollDelta = 3;
+    const MaxPeopleNum = 30;
+    const minMilsecWaiting = 4000;
+    const maxMilsecWaiting = 7000;
     let _minW = 100, // The exact value get's calculated
         _minH = 1, // The exact value get's calculated
         _resizePixel = 5,
@@ -21,7 +25,7 @@ function DialogBox(id, callback)
         _isMinimized = false,
 	    _isResize = false,
         _isButton = false,
-        _isCanceled = false,
+        _state = CollectStateEnum.none,
 	    _isButtonHovered = false, // Let's use standard hover (see css)
 	    _resizeMode = '',
 	    _whichButton,
@@ -32,7 +36,8 @@ function DialogBox(id, callback)
 	    _zIndexFlag = false, // Bring this dialog box to front 
 	    setCursor, // Forward declaration to get access to this function in the closure
 	    whichClick, // Forward declaration to get access to this function in the closure
-	    setDialogContent, // Forward declaration to get access to this function in the closure
+        setDialogContent, // Forward declaration to get access to this function in the closure
+        _people = [],
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -502,7 +507,80 @@ function DialogBox(id, callback)
         }
         setDialogContent();
     }
-	
+
+    function smoothScrollCurrentDocument()
+    {
+        var delta = document.body.scrollHeight / DocumentScrollDelta;
+        var offset = 0.0;
+        for (var i = 0; i < DocumentScrollDelta; i++)
+        {
+            setTimeout(function ()
+            {
+                offset += delta;
+                window.scrollTo(0, offset);
+            }, i * 1000);
+        }
+    }
+
+    function parseGeneralSearchPage()
+    {
+        smoothScrollCurrentDocument();
+
+        setTimeout(function ()
+        {
+            window.scrollTo(0, 0);
+            setTimeout(function ()
+            {
+                var divs = document.getElementsByClassName("search-result__wrapper");
+                if (divs == undefined)
+                {
+                    alert("There is no people");
+                    _state = CollectStateEnum.stopCollection;
+                    return;
+                }
+                for (var i = 0; i < divs.length; i++)
+                {
+                    if (_state == CollectStateEnum.stopCollection || _people.length >= MaxPeopleNum)
+                    {
+                        _state = CollectStateEnum.stopCollection;
+                        return;
+                    }
+                    var div = divs[i];
+                    var actionButton = div.getElementsByClassName("search-result__action-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
+                    if (actionButton == undefined || actionButton.disabled)
+                        continue;
+                    var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
+                    var name = div.getElementsByClassName("name actor-name")[0];
+                    var position = div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0];
+                    var location = div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0];
+                    let person =
+                    {
+                        imgUri: img == undefined ? "" : img.src,
+                        name: name.textContent,
+                        position: position.textContent,
+                        location: location.textContent
+                    };
+                    _people.push(person);
+                }
+                console.log(_people.length);
+                if (_people.length < MaxPeopleNum)
+                    parseNextPageUrl();
+            }, 1000);
+        }, DocumentScrollDelta * 1000); 
+    };
+
+    function parseNextPageUrl()
+    {
+        var nextButton = document.getElementsByClassName("artdeco-pagination__button artdeco-pagination__button--next artdeco-button artdeco-button--muted artdeco-button--icon-right artdeco-button--1 artdeco-button--tertiary ember-view")[0];
+        if (nextButton == undefined || nextButton.disabled)
+        {
+            alert("No more people");
+            _state = CollectStateEnum.stopCollection;
+            return;
+        }
+        nextButton.click();
+    };
+    	
 	whichClick = function(btn)
     {        
         if (btn.name === 'minimize')
@@ -516,89 +594,23 @@ function DialogBox(id, callback)
         }
         if (btn.name === "cancel")
         {
-            _isCanceled = true;            
+            _state = CollectStateEnum.stopCollection;
         }            
         
         if (btn.name === 'collect')
         {
             if (window.location.toString().indexOf("linkedin.com/search/results/people/") == -1)
-            {
                 _invitaionDlg.showInvitationDialog();
-                btn.state = CollectStateEnum.chooseSource;
-            }
-            else if (btn.state == undefined || btn.state == CollectStateEnum.chooseSource)
+            else
             {
-                function calcSum(num)
-                {
-                    return new Promise((resolve, reject) =>
-                    {
-                        console.log("Operation: " + (num + 1) + " started.");
-                        if (_isCanceled)
-                            {
-                                console.log("Operation rejected.");
-                                reject("Operation rejected.");
-                                return;
-                            }
-                        var sum = 0;
-                        for (var i = 0; i < 1000; i++)
-                            sum += i;
-                        console.log("Operation: " + (num + 1) + " finished.")
-                        resolve(sum);
-                    });
-                };
-                
-                function* startCalculations()
-                {
-                    console.log("Start long operation");
-                    try {
-                        for (var i = 0; i < 10; i++) {
-                            yield calcSum(i);
-                        }
-                    }
-                    catch (e)
-                    {
-                        console.log("Handled exception: " + e);
-                    }
-                    console.log("Finish long operation");
-                };
-
-                function async(generator)
-                {
-                    var iterator = generator();
-                    function handle(iter)
-                    {
-                        if (iter.done)
-                            return;
-
-                        const iterVal = iter.value;
-                        if (iterVal instanceof Promise)
-                            iterVal.then(() => 
-                            {
-                                console.log("Generator next.");
-                                handle(iterator.next());
-                            }).catch(err =>
-                            {
-                                console.log("Generator exception: " + err);
-                                iterator.throw(err);
-                            });
-                    };
-                    try
-                    {
-                        handle(iterator.next());
-                    }
-                    catch (e)
-                    {
-                        iterator.throw(e);
-                    }
-                };
-                async(startCalculations);                
-
-                btn.state = CollectStateEnum.collect;
+                parseGeneralSearchPage();
+                _state = CollectStateEnum.collect;
             }
-            else if (btn.state == CollectStateEnum.collect) {
-                alert("Stop collection");
-                btn.state = CollectStateEnum.stopCollection;
-            }
+            //else if (btn.state == CollectStateEnum.collect)
+            //{
+            //    alert("Stop collection");
+            //    btn.state = CollectStateEnum.stopCollection;
+            //}
         }
 
 		if (_callback)
@@ -666,7 +678,23 @@ function DialogBox(id, callback)
 			_buttons[1].focus();
 		else
 			_buttons[0].focus();
-	};
+    };
+
+    function getRandomArbitrary(min, max)
+    {
+        return Math.random() * (max - min) + min;
+    }
+
+    chrome.runtime.onMessage.addListener(request =>
+    {
+        if (request.type === 'linkedOpened' && _state == CollectStateEnum.collect)
+        {
+            setTimeout(() =>
+            {            
+                parseGeneralSearchPage();
+            }, getRandomArbitrary(minMilsecWaiting, maxMilsecWaiting));
+        }
+    });
 	
     init = function (id, callback)
     {
@@ -691,8 +719,8 @@ function DialogBox(id, callback)
 			dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane);
 			dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before");
 			dialogButtonStyle = getComputedStyle(_buttons[1]);
-		}
-        
+        }
+                
 		// Calculate minimal width
 		_minW = Math.max(_dialog.clientWidth, _minW, 
 			+ (_buttons.length > 1 ? 
@@ -751,8 +779,7 @@ function DialogBox(id, callback)
 		}
 		addEvent(_dialogTitle, 'focus', adjustFocus);
         addEvent(_tabBoundary, 'focus', adjustFocus);
-
-        window.addEventListener('scroll', function (e)
+        addEvent(window, 'scroll', function ()
         {
             var tmp = _last_known_scroll_position;
             _last_known_scroll_position = window.scrollY;

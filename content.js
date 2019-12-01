@@ -1,7 +1,7 @@
 chrome.runtime.onMessage.addListener(request =>
 {
-    var _dialog;
-    if (request.type === 'linkedOpened' && _dialog == null)
+    var dialog = document.getElementById("customDialog");
+    if (request.type === 'linkedOpened' && dialog == null)
     {        
         prevHeight = window.innerHeight;
         prevWidth = window.innerWidth;
@@ -21,8 +21,8 @@ chrome.runtime.onMessage.addListener(request =>
                 </div>`;
         document.body.appendChild(div);
         
-        _dialog = new DialogBox('customDialog', callbackDialog);
-        _dialog.showDialog();
+        dialog = new DialogBox('customDialog', callbackDialog);
+        dialog.showDialog();
     }
 });
 

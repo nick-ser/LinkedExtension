@@ -40,7 +40,11 @@ function invitationDialog()
 
     function browseUrl()
     {
-        chrome.runtime.sendMessage({ greeting: "SetUrl" });
+        chrome.runtime.sendMessage(
+            {
+                greeting: "SetUrl",
+                url: "https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22S%22%5D&origin=FACETED_SEARCH/",
+            });
     };
 
     init();    
