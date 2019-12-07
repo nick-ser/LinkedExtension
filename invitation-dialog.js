@@ -11,7 +11,7 @@ function invitationDialog()
             _dialog.className = 'modalInvitationDlg';
             _dialog.innerHTML = `<div class="modal-content">
                         <p align="center">From which page do you want to collect</p>
-                        <div class="buttons">
+                        <div class="buttons" style="margin-top: 10px;">
                           <button class="generalPageBtn" name="collect">General Search Page</button>
                         </div>
                         <div class="cancelpane">

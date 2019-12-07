@@ -16,6 +16,7 @@ chrome.runtime.onMessage.addListener(request =>
                 <div class="content">
                     <button name="collect">Collect</button>
                     <button name="cancel">Cancel</button>
+                    <button name="open">Open</button>
                 </div>
                 <div class="buttonpane">
                 </div>`;

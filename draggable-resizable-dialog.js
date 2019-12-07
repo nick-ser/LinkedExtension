@@ -20,6 +20,7 @@ function DialogBox(id, callback)
         _startX, _startY,
         _startW, _startH,
         _invitaionDlg = null,
+        _invitedList = null,
 	    _leftPos, _topPos,
         _isDrag = false,
         _isMinimized = false,
@@ -524,6 +525,11 @@ function DialogBox(id, callback)
 
     function parseGeneralSearchPage()
     {
+        if (_state == CollectStateEnum.stopCollection || _people.length >= MaxPeopleNum)
+        {
+            _state = CollectStateEnum.stopCollection;
+            return;
+        }
         smoothScrollCurrentDocument();
 
         setTimeout(function ()
@@ -532,7 +538,7 @@ function DialogBox(id, callback)
             setTimeout(function ()
             {
                 var divs = document.getElementsByClassName("search-result__wrapper");
-                if (divs == undefined)
+                if (divs == undefined || divs.length == 0)
                 {
                     alert("There is no people");
                     _state = CollectStateEnum.stopCollection;
@@ -549,16 +555,25 @@ function DialogBox(id, callback)
                     var actionButton = div.getElementsByClassName("search-result__action-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
                     if (actionButton == undefined || actionButton.disabled)
                         continue;
+                    var url = div.getElementsByClassName("search-result__result-link ember-view")[0];
+                    if (url == undefined || url.href === "")
+                        continue;
                     var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
-                    var name = div.getElementsByClassName("name actor-name")[0];
-                    var position = div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0];
-                    var location = div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0];
+                    var name = TrimParsedString(div.getElementsByClassName("name actor-name")[0]);
+                    var parsedName = ParseName(name);
+                    var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
+                    var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
                     let person =
                     {
-                        imgUri: img == undefined ? "" : img.src,
-                        name: name.textContent,
-                        position: position.textContent,
-                        location: location.textContent
+                        imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
+                        name: name,
+                        firstName: parsedName.split("/")[0],
+                        lastName: parsedName.split("/")[1],
+                        position: position,
+                        location: location,
+                        isInvited: false,
+                        isSelected: false,
+                        url: url.href,
                     };
                     _people.push(person);
                 }
@@ -567,6 +582,26 @@ function DialogBox(id, callback)
                     parseNextPageUrl();
             }, 1000);
         }, DocumentScrollDelta * 1000); 
+    };
+
+    function ParseName(fullName)
+    {
+        if (fullName === "")
+            return "";
+        var preps = new Array("Mr.", "mr.", "MR.", "mr", "MR", "Mr", "MBA ", "PhD. ", "PhD ", "Ph.D. ", "Dr. ", "Dr ", "dr. ", "dr ", "Prof ", "Prof. ", "prof ", "prof. ", "MD ", "MD. ", "md ", "md. ");
+        preps.forEach(p => fullName = fullName.replace(p, ""));
+        fullName.replace(/[^A-Za-z]/g, "")
+        var namesArray = fullName.split(" ");
+        if (namesArray.length < 1)
+            return fullName + "/" + fullName;
+        return namesArray[0] + "/" + namesArray[namesArray.length - 1];
+    }
+
+    function TrimParsedString(div)
+    {
+        if (div == undefined || div.textContent === "")
+            return "";
+        return div.textContent.trim();
     };
 
     function parseNextPageUrl()
@@ -595,7 +630,7 @@ function DialogBox(id, callback)
         if (btn.name === "cancel")
         {
             _state = CollectStateEnum.stopCollection;
-        }            
+        }
         
         if (btn.name === 'collect')
         {
@@ -606,17 +641,17 @@ function DialogBox(id, callback)
                 parseGeneralSearchPage();
                 _state = CollectStateEnum.collect;
             }
-            //else if (btn.state == CollectStateEnum.collect)
-            //{
-            //    alert("Stop collection");
-            //    btn.state = CollectStateEnum.stopCollection;
-            //}
+        }
+
+        if (btn.name === "open")
+        {
+            _invitedList.showInvitedList(_people);
         }
 
 		if (_callback)
 			_callback(btn.name);
-	};
-	
+    };
+    
 	getOffset = function(elm)
     {
 		var rect = elm.getBoundingClientRect(),
@@ -707,6 +742,8 @@ function DialogBox(id, callback)
 		_dialogButtonPane = _dialog.querySelector('.buttonpane');
         _buttons = _dialog.querySelectorAll('button');  // Ensure to get minimal width
         _invitaionDlg = new invitationDialog();
+        _invitedList = new invitedList(_people);
+
 
 		// Let's try to get rid of some of constants in javascript but use values from css
 		var dialogStyle = getComputedStyle(_dialog),			

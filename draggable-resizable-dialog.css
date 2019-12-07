@@ -8,30 +8,31 @@
 */
 
 .dialog {
-	display: none; /* not visible by default */
-	font-family: Verdana, sans-serif;
-	font-size: 12px;
-	font-weight: 400;
-	color: #fff;
-	background: #666;
-	border: 1px solid #fff;  /* change allowed; Border to separate multipe dialog boxes */
-	margin: 0;
-	position: absolute;
+    display: none; /* not visible by default */
+    font-family: Verdana, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #fff;
+    background: #666;
+    border: 1px solid #fff; /* change allowed; Border to separate multipe dialog boxes */
+    margin: 0;
+    position: absolute;
     left: 0px;
     top: 60px;
     z-index: 1;
 }
+
 .dialog .titlebar {
-	height: 32px; /* same as .dialog>button height */
-	line-height: 32px; /* same as .dialog>button height */
-	vertical-align: middle;
-	font-size: 1.2em;
-	padding: 0 8px 0 8px; /* change NOT allowed */
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	cursor: move;
-	background: #39c;
+    height: 32px; /* same as .dialog>button height */
+    line-height: 32px; /* same as .dialog>button height */
+    vertical-align: middle;
+    font-size: 1.2em;
+    padding: 0 8px 0 8px; /* change NOT allowed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: move;
+    background: #39c;
 }
 .dialog .content {
 	position: absolute;
