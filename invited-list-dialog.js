@@ -12,7 +12,7 @@ function invitedList(source)
     _closeRef = null,
     _txtArea = null
     _msgLettersCounter = null;
-
+    
     this.init = function () {
         _rootDiv = document.getElementById("parsedPeopleTbl");
         if (_rootDiv == undefined)
@@ -62,6 +62,16 @@ function invitedList(source)
                                     <label id="msgLettersCounter" style="float: right; color: #777a7d; margin-top: 5px; font-size: 1.4rem">0 / 300</label>
                                 </td>
                             </tr>
+                        <tr>
+                            <td>
+                                <progress id="progressBar"></progress> 
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label id="progressBarLabel" style="float: right; color: #777a7d; margin-top: 5px; font-size: 1.4rem"></label>
+                            </td>
+                        </tr>
                       </table>
                     </div>
                     </div>
@@ -82,6 +92,7 @@ function invitedList(source)
             _closeRef = document.getElementById("closeRef");
             _txtArea = document.getElementById("txtArea");
             _msgLettersCounter = document.getElementById("msgLettersCounter");
+            this.progressBarInit();
 
             var delButton = document.getElementById("deleteInvitation");
             delButton.onclick = function ()
@@ -141,6 +152,17 @@ function invitedList(source)
             _rootDiv.style.display = "none";
         }
     };
+
+    this.progressBarInit = function ()
+    {
+        var progressBar = document.getElementById("progressBar");
+        if (progressBar == undefined)
+            return;
+        var invitedList = this.source.filter(person => person.isInvited);
+        progressBar.max = this.source.length;
+        progressBar.value = invitedList == undefined ? 0 : invitedList.length;
+        document.getElementById("progressBarLabel").innerHTML = "Total sent: " + progressBar.value + " / " + progressBar.max;
+    }
 
     this.insertPrepInfo = function (flag)
     {
@@ -221,6 +243,8 @@ function invitedList(source)
             return;
 
         this.updateTable();
+        this.progressBarInit();
+
         _rootDiv.style.display = 'block';
     }.bind(this);
 
