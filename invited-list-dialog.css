@@ -159,11 +159,13 @@
     width: 32px;
     height: 32px;
     opacity: 0.3;
+    background-color: #ffffff;
 }
 
 .parsedPeoplePanel .close:hover
 {
     opacity: 1;
+    background-color: #ffffff;
 }
 
 .parsedPeoplePanel .close:before, .close:after

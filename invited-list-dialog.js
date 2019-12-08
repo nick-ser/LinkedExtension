@@ -1,13 +1,17 @@
 function invitedList(source)
 {
     const FiltrationEnum = Object.freeze({ "byName": 1, "byPosition": 2, "byLocation": 3 })
+    const InsertInfoEnum = Object.freeze({ "firstName": 1, "lastName": 2, "position" : 3, "location" : 4 })
+
     let _table = null,
-        _rootDiv = null,
-        _filterByName = null,
-        _filterByPos = null,
-        _filterByLocation = null
-        _invitedOnlyCheckbox = null,
-        _closeRef = null;
+    _rootDiv = null,
+    _filterByName = null,
+    _filterByPos = null,
+    _filterByLocation = null
+    _invitedOnlyCheckbox = null,
+    _closeRef = null,
+    _txtArea = null
+    _msgLettersCounter = null;
 
     this.init = function () {
         _rootDiv = document.getElementById("parsedPeopleTbl");
@@ -19,8 +23,8 @@ function invitedList(source)
             _rootDiv.innerHTML = 
                 `<div class="invatationTabelPanel" style="margin: 15px;">
                     <div style="float: right; margin-right: 20px;">
-                        <a id="closeRef" href="#" class="close" style="margin-top: -22px;"></a>
-                    </div>
+                        <span id="closeRef" class="close" style="margin-top: -22px;"></span>
+                    </div>                    
                     <div class="filteringDiv" style="display: flex; margin-top: 15px;">
                         <div class="filteringByName" style="margin-right: 10px;">
                             <p>Name: <input id="filterByName" style="width: 150px; height: 24px; margin-top: 2px;" type="text" placeholder="Name" /></p>
@@ -33,11 +37,36 @@ function invitedList(source)
                         </div>
                         <div class="deleteInvitationDiv"><button id="deleteInvitation" style="width: 80px; height: 30px;">Delete</button></div>
                     </div>
-                    <div style="display: flex; margin-top: 10px; margin-bottom: 5px;    margin-left: 8px">
+                    <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
                         <input id="invitedOnly" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px" /><p>Show 'Not invited' only</p>
                     </div>
-                    <div style="height: 80vh; overflow-y: auto;">
-                        <table id="invitedTable" style="border-collapse: collapse; width: 48vw;" border="1" rules="all" cellspacing="0"></table>
+                    <div style="float: right; margin-right: 30px;">
+                        <table style="border-collapse: collapse;">
+                            <tr>
+                                <td>
+                                <div style="display: flex; margin-left: 20px; margin-bottom: 10px;">
+                                    <button id="firstNameInsert" style="width: 90px; height: 30px;">First Name</button>
+                                    <button id="lastNameInsert" style="width: 90px; height: 30px; margin-left: 10px">Last Name</button>
+                                    <button id="positionInsert" style="width: 90px; height: 30px; margin-left: 10px">Position</button>
+                                    <button id="locationInsert" style="width: 90px; height: 30px; margin-left: 10px">Location</button>
+                                </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <textarea maxlength="300" id="txtArea" style="width: 47vw; height: 200px;resize: none; margin-left: 20px;" placeholder="Type message..."></textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label id="msgLettersCounter" style="float: right; color: #777a7d; margin-top: 5px; font-size: 1.4rem">0 / 300</label>
+                                </td>
+                            </tr>
+                      </table>
+                    </div>
+                    </div>
+                    <div style="height: 82vh; overflow-y: auto;">
+                        <table id="invitedTable" style="border-collapse: collapse; width: 47vw;" border="1" rules="all" cellspacing="0"></table>
                     </div>
                     <div style="display: flex; margin-top: 10px; margin-right: 20px; float: right;">
                         <button id="launchInvitation" style="width: 80px; height: 30px;">Launch</button>
@@ -51,15 +80,43 @@ function invitedList(source)
             _filterByLocation = document.getElementById("filterByLocation");
             _invitedOnlyCheckbox = document.getElementById("invitedOnly");
             _closeRef = document.getElementById("closeRef");
+            _txtArea = document.getElementById("txtArea");
+            _msgLettersCounter = document.getElementById("msgLettersCounter");
+
             var delButton = document.getElementById("deleteInvitation");
             delButton.onclick = function ()
             {
                 this.deleteInvitations();
             }.bind(this);
 
+            document.getElementById("firstNameInsert").onclick = function ()
+            {
+                this.insertPrepInfo(InsertInfoEnum.firstName);
+            }.bind(this);
+
+            document.getElementById("lastNameInsert").onclick = function ()
+            {
+                this.insertPrepInfo(InsertInfoEnum.lastName);
+            }.bind(this);
+
+            document.getElementById("positionInsert").onclick = function ()
+            {
+                this.insertPrepInfo(InsertInfoEnum.position);
+            }.bind(this);
+
+            document.getElementById("locationInsert").onclick = function ()
+            {
+                this.insertPrepInfo(InsertInfoEnum.location);
+            }.bind(this);
+
             _closeRef.addEventListener("click", function ()
             {
                 this.closeInvitedList();
+            }.bind(this), false);
+
+            _txtArea.addEventListener("keyup", function ()
+            {
+                this.calcMessageLetters();
             }.bind(this), false);
 
             _invitedOnlyCheckbox.addEventListener("change", function ()
@@ -83,6 +140,35 @@ function invitedList(source)
             }.bind(this), false);
             _rootDiv.style.display = "none";
         }
+    };
+
+    this.insertPrepInfo = function (flag)
+    {
+        var newText = "";
+        if (flag == InsertInfoEnum.firstName)
+            newText = "%FirstName%";
+        if (flag == InsertInfoEnum.lastName)
+            newText = "%LastName%";
+        if (flag == InsertInfoEnum.position)
+            newText = "%Position%";
+        if (flag == InsertInfoEnum.location)
+            newText = "%Location%";
+        var start = _txtArea.selectionStart;
+        var end = _txtArea.selectionEnd;
+        var text = _txtArea.value;
+        var before = text.substring(0, start);
+        var after = text.substring(end, text.length);
+        _txtArea.value = (before + newText + after);
+        _txtArea.selectionStart = _txtArea.selectionEnd = start + newText.length;
+
+        this.calcMessageLetters();
+        _txtArea.focus();
+    }
+
+    this.calcMessageLetters = function()
+    {
+        var lettersNum = _txtArea.value.length;
+        _msgLettersCounter.innerHTML = 300-lettersNum + " / 300";
     };
 
     this.deleteInvitations = function ()
@@ -113,7 +199,7 @@ function invitedList(source)
         else
             this.filteredSource = this.source;
         this.updateTable();
-    }
+    };
 
     this.doFiltration = function (flag, filter)
     {
@@ -127,7 +213,7 @@ function invitedList(source)
         else if (flag == FiltrationEnum.byLocation)
             this.filteredSource = this.source.filter(person => person.location.toLowerCase().indexOf(filter) != -1);
         this.updateTable();
-    }
+    };
 
     this.showInvitedList = function ()
     {
@@ -146,7 +232,7 @@ function invitedList(source)
 
         for (var i = 0; i < this.filteredSource.length; i++)
             addRow(this.filteredSource[i]);
-    }
+    };
 
     function addInvitationFlagCell(tr, person)
     {
@@ -166,7 +252,7 @@ function invitedList(source)
         }       
         td.appendChild(p);
         tr.appendChild(td);
-    }
+    };
 
     function updateRow(person, tr)
     {
@@ -176,7 +262,7 @@ function invitedList(source)
             i--;
         }
         fillExistingRow(tr, person);
-    }
+    };
 
     function addButtonCell(tr, person)
     {
@@ -194,7 +280,7 @@ function invitedList(source)
         button.innerHTML = "Edit profile";
         td.appendChild(button);
         tr.appendChild(td);
-    }
+    };
 
     function addCheckboxCell(tr, person)
     {
@@ -275,7 +361,7 @@ function invitedList(source)
         addPersonInfoCell(tr, person);
         addInvitationFlagCell(tr, person);
         addButtonCell(tr, person);
-    }
+    };
 
     this.closeInvitedList = function ()
     {
