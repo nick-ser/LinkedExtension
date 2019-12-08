@@ -38,7 +38,7 @@ function invitedList(source)
                         <div class="deleteInvitationDiv"><button id="deleteInvitation" style="width: 80px; height: 30px;">Delete</button></div>
                     </div>
                     <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
-                        <input id="invitedOnly" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px" /><p>Show 'Not invited' only</p>
+                        <input id="invitedOnly" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px; margin-left: -5px;" /><p>Show 'Not invited' only</p>
                     </div>
                     <div style="float: right; margin-right: 30px;">
                         <table style="border-collapse: collapse;">
@@ -54,12 +54,12 @@ function invitedList(source)
                             </tr>
                             <tr>
                                 <td>
-                                    <textarea maxlength="300" id="txtArea" style="width: 47vw; height: 200px;resize: none; margin-left: 20px;" placeholder="Type message..."></textarea>
+                                    <textarea maxlength="300" id="txtArea" style="width: 33vw; height: 200px;resize: none; margin-left: 20px; float: right;" placeholder="Type message..."></textarea>
                                 </td>
                             </tr>
                             <tr>
                                 <td>
-                                    <label id="msgLettersCounter" style="float: right; color: #777a7d; margin-top: 5px; font-size: 1.4rem">0 / 300</label>
+                                    <label id="msgLettersCounter" style="float: right; color: #777a7d; margin-top: 5px; font-size: 1.4rem">300 / 300</label>
                                 </td>
                             </tr>
                         <tr>
@@ -72,13 +72,20 @@ function invitedList(source)
                                 <label id="progressBarLabel" style="float: right; color: #777a7d; margin-top: 5px; font-size: 1.4rem"></label>
                             </td>
                         </tr>
+                        <tr>
+                            <td>
+                                <div style="height: 40vh; overflow-y: auto;">
+                                    <table id="outputTbl" style="float: right; width: 33vw; margin-top: 10px;" rules="all" cellspacing="0"></table>
+                                </div>
+                            </td>
+                        </tr>
                       </table>
                     </div>
                     </div>
                     <div style="height: 82vh; overflow-y: auto;">
-                        <table id="invitedTable" style="border-collapse: collapse; width: 47vw;" border="1" rules="all" cellspacing="0"></table>
+                        <table id="invitedTable" style="border-collapse: collapse; width: 55vw;" border="1" rules="all" cellspacing="0"></table>
                     </div>
-                    <div style="display: flex; margin-top: 10px; margin-right: 20px; float: right;">
+                    <div style="display: flex; margin-right: 35px; float: right;">
                         <button id="launchInvitation" style="width: 80px; height: 30px;">Launch</button>
                         <button id="stopInvitation" style="width: 80px; height: 30px; margin-left: 10px;">Stop</button>
                     </div>
@@ -93,6 +100,7 @@ function invitedList(source)
             _txtArea = document.getElementById("txtArea");
             _msgLettersCounter = document.getElementById("msgLettersCounter");
             this.progressBarInit();
+            this.initOutput();
 
             var delButton = document.getElementById("deleteInvitation");
             delButton.onclick = function ()
@@ -153,6 +161,48 @@ function invitedList(source)
         }
     };
 
+    this.initOutput = function ()
+    {
+        var tbl = document.getElementById("outputTbl");
+        if (tbl == undefined)
+            return;
+        var invited = this.source.filter(person => person.isInvited);
+        if (invited == undefined || invited.length == 0)
+            return;
+        invited.forEach(p => this.addOutputInfo(p));
+    };
+
+    this.addOutputInfo = function (person)
+    {
+        var tbl = document.getElementById("outputTbl");
+        if (tbl == undefined || person == undefined || !person.isInvited)
+            return;
+        var tr = document.createElement('tr');
+        var td = document.createElement('td');
+        td.setAttribute("style", "width: 200px;");
+        var p = document.createElement('p');
+        p.innerText = person.firstName + " " + person.lastName;
+        td.appendChild(p);
+        tr.appendChild(td);
+        var td1 = document.createElement('td');
+        td1.setAttribute("style", "width: 60px;");
+        var p1 = document.createElement('p');
+        var p1 = document.createElement('p');
+        if (person.isError)
+        {
+            p1.className = "errorOutputParagraph";
+            p1.innerText = "Error";
+        }
+        else
+        {
+            p1.className = "outputParagraph";
+            p1.innerText = "Sent";
+        }
+        td1.appendChild(p1);
+        tr.appendChild(td1);
+        tbl.appendChild(tr);
+    };
+
     this.progressBarInit = function ()
     {
         var progressBar = document.getElementById("progressBar");
@@ -162,7 +212,7 @@ function invitedList(source)
         progressBar.max = this.source.length;
         progressBar.value = invitedList == undefined ? 0 : invitedList.length;
         document.getElementById("progressBarLabel").innerHTML = "Total sent: " + progressBar.value + " / " + progressBar.max;
-    }
+    };
 
     this.insertPrepInfo = function (flag)
     {
@@ -185,7 +235,7 @@ function invitedList(source)
 
         this.calcMessageLetters();
         _txtArea.focus();
-    }
+    };
 
     this.calcMessageLetters = function()
     {
@@ -244,6 +294,7 @@ function invitedList(source)
 
         this.updateTable();
         this.progressBarInit();
+        this.initOutput();
 
         _rootDiv.style.display = 'block';
     }.bind(this);

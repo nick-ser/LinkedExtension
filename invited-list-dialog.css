@@ -192,7 +192,7 @@ progress[value]
 {
     -webkit-appearance: none;
     appearance: none;
-    width: 47vw;
+    width: 33vw;
     height: 26px;
     margin-top: 10px;
     float: right;
@@ -205,3 +205,26 @@ progress[value]::-webkit-progress-bar
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35) inset;
 }
 
+.parsedPeoplePanel .errorOutputParagraph
+{
+    font-weight: 600;
+    font-family: -apple-system,system-ui,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Fira Sans,Ubuntu,Oxygen,Oxygen Sans,Cantarell,Droid Sans,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Lucida Grande,Helvetica,Arial,sans-serif;
+    font-size: 1.6rem;
+    color: #FF0000;
+}
+
+.parsedPeoplePanel .outputParagraph
+{
+    font-weight: 600;
+    font-family: -apple-system,system-ui,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Fira Sans,Ubuntu,Oxygen,Oxygen Sans,Cantarell,Droid Sans,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Lucida Grande,Helvetica,Arial,sans-serif;
+    font-size: 1.6rem;
+    color: #008000;
+}
+
+.parsedPeoplePanel .outputRow
+{
+    vertical-align: middle;
+    padding-left: 8px;
+    padding-right: 8px;
+    height: 30px;
+}

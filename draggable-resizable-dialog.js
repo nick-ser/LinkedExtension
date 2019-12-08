@@ -573,6 +573,7 @@ function DialogBox(id, callback)
                         location: location,
                         isInvited: false,
                         isSelected: false,
+                        isError: false,
                         url: url.href,
                     };
                     _people.push(person);
