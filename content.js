@@ -17,6 +17,8 @@ chrome.runtime.onMessage.addListener(request =>
                     <button name="collect">Collect</button>
                     <button name="cancel">Cancel</button>
                     <button name="open">Open</button>
+                <select id="invitationsList" style="margin-top: 10px; height: 26px; width: 340px;">
+                </select>
                 </div>
                 <div class="buttonpane">
                 </div>`;

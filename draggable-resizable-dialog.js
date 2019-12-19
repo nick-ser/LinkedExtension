@@ -2,6 +2,7 @@ function DialogBox(id, callback)
 {
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3 })
     const DocumentScrollDelta = 3;
+    const invitationsList = "invitationsList";
     const MaxPeopleNum = 30;
     const minMilsecWaiting = 4000;
     const maxMilsecWaiting = 7000;
@@ -21,24 +22,26 @@ function DialogBox(id, callback)
         _startW, _startH,
         _invitaionDlg = null,
         _invitedList = null,
-	    _leftPos, _topPos,
+        _leftPos, _topPos,
         _isDrag = false,
         _isMinimized = false,
-	    _isResize = false,
+        _isResize = false,
         _isButton = false,
         _state = CollectStateEnum.none,
-	    _isButtonHovered = false, // Let's use standard hover (see css)
-	    _resizeMode = '',
-	    _whichButton,
-	    _buttons,
-	    _tabBoundary,
-	    _callback, // Callback function which transfers the name of the selected button to the caller
-	    _zIndex, // Initial zIndex of this dialog box 
-	    _zIndexFlag = false, // Bring this dialog box to front 
-	    setCursor, // Forward declaration to get access to this function in the closure
-	    whichClick, // Forward declaration to get access to this function in the closure
+        _isButtonHovered = false, // Let's use standard hover (see css)
+        _resizeMode = '',
+        _whichButton,
+        _buttons,
+        _tabBoundary,
+        _callback, // Callback function which transfers the name of the selected button to the caller
+        _zIndex, // Initial zIndex of this dialog box 
+        _zIndexFlag = false, // Bring this dialog box to front 
+        setCursor, // Forward declaration to get access to this function in the closure
+        whichClick, // Forward declaration to get access to this function in the closure
         setDialogContent, // Forward declaration to get access to this function in the closure
-        _people = [],
+        _invitationLists = [],
+        _currentInvitationList = null,
+        _createListDialog = null;
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -523,9 +526,9 @@ function DialogBox(id, callback)
         }
     }
 
-    function parseGeneralSearchPage()
+    parseGeneralSearchPage = function ()
     {
-        if (_state == CollectStateEnum.stopCollection || _people.length >= MaxPeopleNum)
+        if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
         {
             _state = CollectStateEnum.stopCollection;
             return;
@@ -546,7 +549,7 @@ function DialogBox(id, callback)
                 }
                 for (var i = 0; i < divs.length; i++)
                 {
-                    if (_state == CollectStateEnum.stopCollection || _people.length >= MaxPeopleNum)
+                    if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
                     {
                         _state = CollectStateEnum.stopCollection;
                         return;
@@ -563,6 +566,8 @@ function DialogBox(id, callback)
                     var parsedName = ParseName(name);
                     var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
                     var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
+                    if (_currentInvitationList.people.find(p => p.url == url.href))
+                        continue;
                     let person =
                     {
                         imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
@@ -576,14 +581,14 @@ function DialogBox(id, callback)
                         isError: false,
                         url: url.href,
                     };
-                    _people.push(person);
+                    _currentInvitationList.people.push(person);                    
                 }
-                console.log(_people.length);
-                if (_people.length < MaxPeopleNum)
+                saveCurrentInvitationList();
+                if (_currentInvitationList.people.length < MaxPeopleNum)
                     parseNextPageUrl();
             }, 1000);
-        }, DocumentScrollDelta * 1000); 
-    };
+        }, DocumentScrollDelta * 1000);
+    }
 
     function ParseName(fullName)
     {
@@ -646,7 +651,7 @@ function DialogBox(id, callback)
 
         if (btn.name === "open")
         {
-            _invitedList.showInvitedList(_people);
+            _invitedList.showInvitedList(_currentInvitationList);
         }
 
 		if (_callback)
@@ -731,8 +736,48 @@ function DialogBox(id, callback)
             }, getRandomArbitrary(minMilsecWaiting, maxMilsecWaiting));
         }
     });
-	
-    init = function (id, callback)
+
+    this.invitationListChange = function (event)
+    {
+        if (event.target.value != "Create new list")
+            loadInvitationList();
+        else
+        {
+            _createListDialog.showCreateListDialog(_invitationLists);
+        }
+        this.saveCurrentInvitationListName(event.target.value);
+    }.bind(this);
+
+    this.createNewList = function (listName)
+    {
+        _invitationLists.splice(_invitationLists.length - 1, 0, listName);
+        var invitationsLst = document.getElementById(invitationsList);
+        invitationsLst.innerHTML = '';
+        _invitationLists.forEach(name =>
+        {
+            var option = document.createElement("option");
+            option.text = name;
+            option.value = name;
+            invitationsLst.add(option);
+        });
+        invitationsLst.value = listName;
+        chrome.storage.local.set(
+            {
+                invitationsList: _invitationLists
+            });
+
+        this.saveCurrentInvitationListName(listName);
+        _currentInvitationList =
+            {
+                type: "invitation",
+                name: listName,
+                people: [],
+                message: "",
+            };
+        saveCurrentInvitationList();
+    }.bind(this);
+
+    this.init = function (id, callback)
     {
 		_dialog = document.getElementById(id);
 		_callback = callback; // Register callback function
@@ -743,9 +788,15 @@ function DialogBox(id, callback)
 		_dialogButtonPane = _dialog.querySelector('.buttonpane');
         _buttons = _dialog.querySelectorAll('button');  // Ensure to get minimal width
         _invitaionDlg = new invitationDialog();
-        _invitedList = new invitedList(_people);
+        _invitedList = new invitedList();
+        _createListDialog = new createInvitationListDialog(this.createNewList);
+        document.getElementById(invitationsList).addEventListener('change', (event) =>
+        {
+            this.invitationListChange(event);
+        });
+        this.loadInvitationLists();
 
-
+        
 		// Let's try to get rid of some of constants in javascript but use values from css
 		var dialogStyle = getComputedStyle(_dialog),			
 			dialogContentStyle = getComputedStyle(_dialogContent),
@@ -837,7 +888,74 @@ function DialogBox(id, callback)
             _dialog.style.top = scroll_pos + top + 'px';
             saveDialogSettings();
         }
-    };    
+    };
+
+    loadInvitationList = function ()
+    {
+        var element = document.getElementById(invitationsList);
+        var listName = element.value;
+        chrome.storage.local.get(listName, function (result)
+        {
+            if (result[listName] == undefined)
+            {
+                _currentInvitationList =
+                    {
+                        type: "invitation",
+                        name: listName,
+                        people: [],
+                        message: "",
+                    };
+            }
+            else
+                _currentInvitationList = result[listName];
+        });
+    };
+
+    this.saveCurrentInvitationListName = function (name)
+    {
+        chrome.storage.local.set({ "currentInvitationListName": name });
+    }.bind(this);
+
+    this.loadCurrentInvitationListName = function ()
+    {
+        chrome.storage.local.get("currentInvitationListName", function (result)
+        {
+            var element = document.getElementById(invitationsList);
+            var name = result["currentInvitationListName"];            
+            element.value = name;
+            loadInvitationList();
+        });
+
+    }.bind(this);
+
+    this.loadInvitationLists = function ()
+    {
+        chrome.storage.local.get([invitationsList], function (result)
+        {
+            if (result[invitationsList] == undefined)
+            {
+                _invitationLists.push('Default');
+                _invitationLists.push('Create new list');
+            }
+            else
+                _invitationLists = result[invitationsList];            
+            
+            var invitationsSelector = document.getElementById(invitationsList);
+            _invitationLists.forEach(listName => {
+                var option = document.createElement("option");
+                option.text = listName;
+                option.value = listName;
+                invitationsSelector.add(option);
+            });
+        });
+        this.loadCurrentInvitationListName();
+    };
+
+    saveCurrentInvitationList = function ()
+    {
+        var name = _currentInvitationList.name;
+        chrome.storage.local.set({ [name]: _currentInvitationList});
+    };
 
     function saveDialogSettings()
     {
@@ -859,6 +977,11 @@ function DialogBox(id, callback)
 
     function loadDialogSettings()
     {
+        chrome.storage.local.get('testPerson', function (result)
+        {
+            console.log(result.testPerson.name);
+        });
+
         if (_dialog != null)
         {
             chrome.storage.local.get('dialogState', function (result)
@@ -922,7 +1045,7 @@ function DialogBox(id, callback)
     };
 
     // Execute constructor
-	init(id, callback);
+	this.init(id, callback);
 
 	// Public interface 
     this.showDialog = showDialog;

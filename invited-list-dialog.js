@@ -1,4 +1,4 @@
-function invitedList(source)
+function invitedList()
 {
     const FiltrationEnum = Object.freeze({ "byName": 1, "byPosition": 2, "byLocation": 3 })
     const InsertInfoEnum = Object.freeze({ "firstName": 1, "lastName": 2, "position" : 3, "location" : 4 })
@@ -13,11 +13,12 @@ function invitedList(source)
     _txtArea = null
     _msgLettersCounter = null;
     
-    this.init = function () {
+    this.init = function ()
+    {
         _rootDiv = document.getElementById("parsedPeopleTbl");
         if (_rootDiv == undefined)
         {
-            _rootDiv = document.createElement('div')
+            _rootDiv = document.createElement('div');
             _rootDiv.id = 'parsedPeopleTbl';
             _rootDiv.className = 'parsedPeoplePanel';
             _rootDiv.innerHTML = 
@@ -99,8 +100,6 @@ function invitedList(source)
             _closeRef = document.getElementById("closeRef");
             _txtArea = document.getElementById("txtArea");
             _msgLettersCounter = document.getElementById("msgLettersCounter");
-            this.progressBarInit();
-            this.initOutput();
 
             var delButton = document.getElementById("deleteInvitation");
             delButton.onclick = function ()
@@ -130,11 +129,13 @@ function invitedList(source)
 
             _closeRef.addEventListener("click", function ()
             {
+                this.saveCurrentInvitationList();
                 this.closeInvitedList();
             }.bind(this), false);
 
             _txtArea.addEventListener("keyup", function ()
             {
+                this.source.message = _txtArea.value;
                 this.calcMessageLetters();
             }.bind(this), false);
 
@@ -166,7 +167,7 @@ function invitedList(source)
         var tbl = document.getElementById("outputTbl");
         if (tbl == undefined)
             return;
-        var invited = this.source.filter(person => person.isInvited);
+        var invited = this.source.people.filter(person => person.isInvited);
         if (invited == undefined || invited.length == 0)
             return;
         invited.forEach(p => this.addOutputInfo(p));
@@ -208,8 +209,8 @@ function invitedList(source)
         var progressBar = document.getElementById("progressBar");
         if (progressBar == undefined)
             return;
-        var invitedList = this.source.filter(person => person.isInvited);
-        progressBar.max = this.source.length;
+        var invitedList = this.source.people.filter(person => person.isInvited);
+        progressBar.max = this.source.people.length;
         progressBar.value = invitedList == undefined ? 0 : invitedList.length;
         document.getElementById("progressBarLabel").innerHTML = "Total sent: " + progressBar.value + " / " + progressBar.max;
     };
@@ -254,11 +255,11 @@ function invitedList(source)
                 i--;
             }
         }
-        for (var i = 0; i < this.source.length; i++)
+        for (var i = 0; i < this.source.people.length; i++)
         {
-            if (this.source[i].isSelected)
+            if (this.source.people[i].isSelected)
             {
-                this.source.splice(i, 1);
+                this.source.people.splice(i, 1);
                 i--;
             }
         }
@@ -267,34 +268,38 @@ function invitedList(source)
     this.showInvitedOnly = function ()
     {
         if (_invitedOnlyCheckbox.checked)
-            this.filteredSource = this.source.filter(person => !person.isInvited);
+            this.filteredSource = this.source.people.filter(person => !person.isInvited);
         else
-            this.filteredSource = this.source;
+            this.filteredSource = this.source.people;
         this.updateTable();
     };
 
     this.doFiltration = function (flag, filter)
     {
         if (filter == "")
-            this.filteredSource = this.source;         
+            this.filteredSource = this.source.people;         
         else if (flag == FiltrationEnum.byName)
-            this.filteredSource = this.source.filter(person => person.firstName.toLowerCase().indexOf(filter) != -1
+            this.filteredSource = this.source.people.filter(person => person.firstName.toLowerCase().indexOf(filter) != -1
                 || person.lastName.toLowerCase().indexOf(filter) != -1);
         else if (flag == FiltrationEnum.byPosition)
-            this.filteredSource = this.source.filter(person => person.position.toLowerCase().indexOf(filter) != -1);
+            this.filteredSource = this.source.people.filter(person => person.position.toLowerCase().indexOf(filter) != -1);
         else if (flag == FiltrationEnum.byLocation)
-            this.filteredSource = this.source.filter(person => person.location.toLowerCase().indexOf(filter) != -1);
+            this.filteredSource = this.source.people.filter(person => person.location.toLowerCase().indexOf(filter) != -1);
         this.updateTable();
     };
 
-    this.showInvitedList = function ()
+    this.showInvitedList = function (source)
     {
-        if (this.source == undefined || this.source.length == 0)
+        this.source = source;
+        this.filteredSource = source.people;
+
+        if (this.source.people == undefined)
             return;
 
         this.updateTable();
         this.progressBarInit();
         this.initOutput();
+        _txtArea.value = this.source.message;
 
         _rootDiv.style.display = 'block';
     }.bind(this);
@@ -443,8 +448,12 @@ function invitedList(source)
         _rootDiv.style.display = "none"
     };
 
-    this.source = source;
-    this.filteredSource = source;
+    this.saveCurrentInvitationList = function ()
+    {
+        var name = this.source.name;
+        chrome.storage.local.set({ [name]: this.source });
+    };
+        
     this.init();
     return this;
 }

@@ -9,7 +9,8 @@ function personDataDialog(person, updateRowCallback, tr)
     this.init = function ()
     {
         this.dialog = document.querySelector(".modalPersonDataDlg");
-        if (this.dialog == null) {
+        if (this.dialog == null)
+        {
             this.dialog = document.createElement('div')
             this.dialog.style.zIndex = 9999;
             this.dialog.className = 'modalPersonDataDlg';
