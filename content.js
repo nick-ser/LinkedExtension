@@ -14,8 +14,8 @@ chrome.runtime.onMessage.addListener(request =>
         div.innerHTML = `<div class="titlebar">Dialog Title...</div>
                 <button name="minimize">-</button>
                 <div class="content">
-                    <button name="collect">Collect</button>
-                    <button name="cancel">Cancel</button>
+                    <button id="collectBtn" name="collect">Collect</button>
+                    <button id="cancelCollectBtn" name="cancel">Cancel</button>
                     <button name="open">Open</button>
                 <select id="invitationsList" style="margin-top: 10px; height: 26px; width: 340px;">
                 </select>

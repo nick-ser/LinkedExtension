@@ -1,6 +1,6 @@
 function DialogBox(id, callback)
 {
-    const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3 })
+    const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
     const DocumentScrollDelta = 3;
     const invitationsList = "invitationsList";
     const MaxPeopleNum = 30;
@@ -528,11 +528,11 @@ function DialogBox(id, callback)
 
     parseGeneralSearchPage = function ()
     {
-        if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
+        /*if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
         {
             _state = CollectStateEnum.stopCollection;
             return;
-        }
+        }*/
         smoothScrollCurrentDocument();
 
         setTimeout(function ()
@@ -544,14 +544,14 @@ function DialogBox(id, callback)
                 if (divs == undefined || divs.length == 0)
                 {
                     alert("There is no people");
-                    _state = CollectStateEnum.stopCollection;
+                    setState(CollectStateEnum.stopCollection);
                     return;
                 }
                 for (var i = 0; i < divs.length; i++)
                 {
                     if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
                     {
-                        _state = CollectStateEnum.stopCollection;
+                        setState(CollectStateEnum.stopCollection);
                         return;
                     }
                     var div = divs[i];
@@ -616,7 +616,7 @@ function DialogBox(id, callback)
         if (nextButton == undefined || nextButton.disabled)
         {
             alert("No more people");
-            _state = CollectStateEnum.stopCollection;
+            setState(CollectStateEnum.stopCollection);
             return;
         }
         nextButton.click();
@@ -635,7 +635,8 @@ function DialogBox(id, callback)
         }
         if (btn.name === "cancel")
         {
-            _state = CollectStateEnum.stopCollection;
+            setState(CollectStateEnum.stopCollection);
+            return;
         }
         
         if (btn.name === 'collect')
@@ -645,7 +646,7 @@ function DialogBox(id, callback)
             else
             {
                 parseGeneralSearchPage();
-                _state = CollectStateEnum.collect;
+                setState(CollectStateEnum.collect);
             }
         }
 
@@ -657,6 +658,40 @@ function DialogBox(id, callback)
 		if (_callback)
 			_callback(btn.name);
     };
+
+    setState = function(state)
+    {
+        _state = state;
+        var collectBtn = document.getElementById("collectBtn"); 
+        var cancelBtn = document.getElementById("cancelCollectBtn");
+        switch(_state)
+        {
+            case CollectStateEnum.collect:
+                collectBtn.disabled = true;
+                collectBtn.style="background-color: green";
+                cancelBtn.disabled = false;
+                cancelBtn.style = "background-color: #39c";
+                break;          
+            case CollectStateEnum.stopCollection: 
+                collectBtn.disabled = false;
+                collectBtn.style="background-color: #39c";
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                break;          
+            case CollectStateEnum.none:
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                collectBtn.disabled = false;
+                collectBtn.style="background-color: #39c";
+                break;
+            case CollectStateEnum.invitation:
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                collectBtn.disabled = true;
+                collectBtn.style="background-color: gray";
+                break;
+          }
+    }
     
 	getOffset = function(elm)
     {
@@ -788,7 +823,7 @@ function DialogBox(id, callback)
 		_dialogButtonPane = _dialog.querySelector('.buttonpane');
         _buttons = _dialog.querySelectorAll('button');  // Ensure to get minimal width
         _invitaionDlg = new invitationDialog();
-        _invitedList = new invitedList();
+        _invitedList = new invitedList(setState);
         _createListDialog = new createInvitationListDialog(this.createNewList);
         document.getElementById(invitationsList).addEventListener('change', (event) =>
         {
@@ -977,11 +1012,6 @@ function DialogBox(id, callback)
 
     function loadDialogSettings()
     {
-        chrome.storage.local.get('testPerson', function (result)
-        {
-            console.log(result.testPerson.name);
-        });
-
         if (_dialog != null)
         {
             chrome.storage.local.get('dialogState', function (result)

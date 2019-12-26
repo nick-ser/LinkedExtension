@@ -1,7 +1,8 @@
-function invitedList()
+function invitedList(setState)
 {
     const FiltrationEnum = Object.freeze({ "byName": 1, "byPosition": 2, "byLocation": 3 })
     const InsertInfoEnum = Object.freeze({ "firstName": 1, "lastName": 2, "position" : 3, "location" : 4 })
+    const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
 
     let _table = null,
     _rootDiv = null,
@@ -100,6 +101,18 @@ function invitedList()
             _closeRef = document.getElementById("closeRef");
             _txtArea = document.getElementById("txtArea");
             _msgLettersCounter = document.getElementById("msgLettersCounter");
+
+            var launchBtn = document.getElementById("launchInvitation");
+            launchBtn.onclick = function()
+            {
+                this.setState(CollectStateEnum.invitation);
+            }.bind(this);
+
+            var stopInvitationBtn = document.getElementById("stopInvitation");
+            stopInvitationBtn.onclick = function()
+            {
+                this.setState(CollectStateEnum.none);
+            }.bind(this);
 
             var delButton = document.getElementById("deleteInvitation");
             delButton.onclick = function ()
@@ -235,6 +248,7 @@ function invitedList()
         _txtArea.selectionStart = _txtArea.selectionEnd = start + newText.length;
 
         this.calcMessageLetters();
+        this.source.message = _txtArea.value;
         _txtArea.focus();
     };
 
@@ -454,6 +468,7 @@ function invitedList()
         chrome.storage.local.set({ [name]: this.source });
     };
         
+    this.setState = setState;
     this.init();
     return this;
 }

@@ -40,15 +40,13 @@ function invitationDialog()
 
     function browseUrl()
     {
-        chrome.runtime.sendMessage(
-            {
-                greeting: "SetUrl",
-                url: "https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22S%22%5D&origin=FACETED_SEARCH/",
-            });
+        window.history.pushState(null, null, 'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22S%22%5D&origin=FACETED_SEARCH/');
+        setTimeout(() => window.history.back(), 50);
+        setTimeout(() => window.history.forward(), 70);
+        closeDialog();
     };
 
     init();    
     this.showInvitationDialog = showInvitationDialog;
-
     return this;
 }
