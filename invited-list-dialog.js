@@ -3,6 +3,16 @@ function invitedList(setState)
     const FiltrationEnum = Object.freeze({ "byName": 1, "byPosition": 2, "byLocation": 3 })
     const InsertInfoEnum = Object.freeze({ "firstName": 1, "lastName": 2, "position" : 3, "location" : 4 })
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
+    const FirstNameDelimiter = "%FirstName%";
+    const LastNameDelimiter = "%LastName%";
+    const PositionDelimiter = "%Position%";
+    const LocationDelimiter = "%Location%";
+    const DocumentScrollDelta = 4;
+    const InviteBtnClass = "pv-s-profile-actions pv-s-profile-actions--connect ml2 artdeco-button artdeco-button--2 artdeco-button--primary ember-view";
+    const AddNoteBtnClass = "mr1 artdeco-button artdeco-button--muted artdeco-button--3 artdeco-button--secondary ember-view";
+    const TextAreaClass = "send-invite__custom-message mb3 ember-text-area ember-view";
+    const SentButtonClass = "ml1 artdeco-button artdeco-button--3 artdeco-button--primary ember-view";
+    const MaxInvitationSentCount = 100;
 
     let _table = null,
     _rootDiv = null,
@@ -12,7 +22,8 @@ function invitedList(setState)
     _invitedOnlyCheckbox = null,
     _closeRef = null,
     _txtArea = null
-    _msgLettersCounter = null;
+    _msgLettersCounter = null,
+    _isCanceld = false;
     
     this.init = function ()
     {
@@ -103,15 +114,26 @@ function invitedList(setState)
             _msgLettersCounter = document.getElementById("msgLettersCounter");
 
             var launchBtn = document.getElementById("launchInvitation");
+            var stopBtn = document.getElementById("stopInvitation");
             launchBtn.onclick = function()
             {
                 this.setState(CollectStateEnum.invitation);
+                _isCanceld = false;                
+                stopBtn.disabled = false;
+                stopBtn.style = 'background-color: #39c';                
+                launchBtn.disabled = true;
+                launchBtn.style = 'background-color: green';
+                this.startInvitationCampaign();
             }.bind(this);
 
-            var stopInvitationBtn = document.getElementById("stopInvitation");
-            stopInvitationBtn.onclick = function()
+            stopBtn.onclick = function()
             {
+                stopBtn.disabled = true;
+                stopBtn.style = 'background-color: gray';                
+                launchBtn.disabled = false;
+                launchBtn.style = 'background-color: #39c';
                 this.setState(CollectStateEnum.none);
+                _isCanceld = true;
             }.bind(this);
 
             var delButton = document.getElementById("deleteInvitation");
@@ -180,7 +202,9 @@ function invitedList(setState)
         var tbl = document.getElementById("outputTbl");
         if (tbl == undefined)
             return;
+        tbl.innerHTML = '';
         var invited = this.source.people.filter(person => person.isInvited);
+
         if (invited == undefined || invited.length == 0)
             return;
         invited.forEach(p => this.addOutputInfo(p));
@@ -232,13 +256,13 @@ function invitedList(setState)
     {
         var newText = "";
         if (flag == InsertInfoEnum.firstName)
-            newText = "%FirstName%";
+            newText = FirstNameDelimiter;
         if (flag == InsertInfoEnum.lastName)
-            newText = "%LastName%";
+            newText = LastNameDelimiter;
         if (flag == InsertInfoEnum.position)
-            newText = "%Position%";
+            newText = PositionDelimiter;
         if (flag == InsertInfoEnum.location)
-            newText = "%Location%";
+            newText = LocationDelimiter;
         var start = _txtArea.selectionStart;
         var end = _txtArea.selectionEnd;
         var text = _txtArea.value;
@@ -302,10 +326,29 @@ function invitedList(setState)
         this.updateTable();
     };
 
-    this.showInvitedList = function (source)
+    this.showInvitedList = function (state, source)
     {
         this.source = source;
         this.filteredSource = source.people;
+
+        var canclelBtn = document.getElementById('stopInvitation');
+        var launchBtn = document.getElementById('launchInvitation');
+        if(state != CollectStateEnum.invitation)
+        {
+            canclelBtn.disabled = true;
+            canclelBtn.style = 'background-color: gray';
+            
+            launchBtn.disabled = false;
+            launchBtn.style = 'background-color: #39c';
+        }
+        else
+        {
+            canclelBtn.disabled = false;
+            canclelBtn.style = 'background-color: #39c';
+            
+            launchBtn.disabled = true;
+            launchBtn.style = 'background-color: green';
+        }
 
         if (this.source.people == undefined)
             return;
@@ -466,6 +509,148 @@ function invitedList(setState)
     {
         var name = this.source.name;
         chrome.storage.local.set({ [name]: this.source });
+    };
+
+    function setTextToLinkedinInput(textArea, text)
+    {
+        textArea.value = text;
+        function simulateKey(keyCode, type, modifiers)
+        {
+            var evtName = (typeof (type) === "string") ? "key" + type : "keydown";
+            var modifier = (typeof (modifiers) === "object") ? modifier : {};
+            var event = document.createEvent("HTMLEvents");
+            event.initEvent(evtName, true, false);
+            event.keyCode = keyCode;
+            for (var i in modifiers)
+                event[i] = modifiers[i];
+                textArea.dispatchEvent(event);
+        }
+        simulateKey(38);
+        simulateKey(38, "up");
+        var event = new Event('input',
+        {
+            bubbles: true,
+            cancelable: true,
+        });
+        textArea.dispatchEvent(event);
+    };
+
+    function sleep(ms)
+    {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };
+
+    this.startInvitationCampaign = async function ()
+    {
+        var notInvitetedPeople = this.source.people.filter(person => !person.isInvited);
+        var count = await loadInvitationCount();
+        for(let i=0; i<notInvitetedPeople.length; i++)
+        {
+            if(_isCanceld)
+                break;
+            if(count++ > MaxInvitationSentCount)
+            {
+                alert('You have reached the limit for sending invitations.');
+                this.setState(CollectStateEnum.none);
+                return;   
+            }
+
+            await saveInvitationCount(count);
+            var person = notInvitetedPeople[i];
+            try
+            {
+                var msg = this.source.message.replace(FirstNameDelimiter, person.firstName);
+                msg = msg.replace(LastNameDelimiter, person.lastName);
+                msg = msg.replace(PositionDelimiter, person.position);
+                msg = msg.replace(LocationDelimiter, person.location);
+                
+                window.history.pushState(null, null, person.url);
+                await sleep(50);
+                window.history.back();
+                await sleep(70);
+                window.history.forward();
+
+                // TODO: Get from settings!!!!!!
+                await sleep(5000);
+
+                var delta = document.body.scrollHeight / DocumentScrollDelta;
+                var offset = 0.0;
+                for (let j = 0; j < DocumentScrollDelta; j++)
+                {
+                    offset += delta;
+                    window.scrollTo(0, offset);
+                    await sleep(j*1000);
+                }
+                window.scrollTo(0, 0);
+                
+                var inviteBtn = document.getElementsByClassName(InviteBtnClass)[0];
+                if(inviteBtn == undefined)
+                    throw("Invite button hasn't been found.");
+                if(inviteBtn.disabled)
+                    throw("Invite button is disabled.")
+                inviteBtn.click();
+
+                var addNoteBtn = document.getElementsByClassName(AddNoteBtnClass)[0];
+                if(addNoteBtn == undefined)
+                    throw("Add Note button hasn't been found.");
+                addNoteBtn.click();
+
+                var textArea = document.getElementsByClassName(TextAreaClass)[0];
+                if(textArea == undefined)
+                    throw("Text area hasn't been found.");
+                setTextToLinkedinInput(textArea, msg); 
+                
+                var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
+                if(sentBtn == undefined)
+                    throw("Sent button hasn't been found.");
+                if(sentBtn.disabled)
+                    throw("Sent button is disabled.")
+                sentBtn.click();
+            }
+            catch(e)
+            {   
+                console.log(person.name + ": " + e);
+                person.isError = true;
+            }
+            person.isInvited = true;
+            this.addOutputInfo(person);
+            this.progressBarInit();
+            this.saveCurrentInvitationList();
+        }
+        this.setState(CollectStateEnum.none);
+    };
+
+    function saveInvitationCount(count)
+    {
+        return new Promise(resolve =>
+        {
+            var today = new Date();
+            var dd = String(today.getDate()).padStart(2, '0');
+            var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+            var yyyy = today.getFullYear();
+            today = mm + '/' + dd + '/' + yyyy;
+            let tmp = 
+            {
+                date: today,
+                count: count
+            };
+            chrome.storage.local.set({ 'invitationCount': tmp });
+            resolve();
+        });
+    };
+
+    function loadInvitationCount()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('invitationCount', function (result)
+            {
+                var tmp = result['invitationCount'];
+                if (tmp == undefined)
+                    resolve(0);
+                resolve(tmp.count);
+            })
+        });
     };
         
     this.setState = setState;

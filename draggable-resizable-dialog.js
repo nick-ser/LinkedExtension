@@ -2,8 +2,7 @@ function DialogBox(id, callback)
 {
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
     const DocumentScrollDelta = 3;
-    const invitationsList = "invitationsList";
-    const MaxPeopleNum = 30;
+    const invitationsList = "invitationsList";    
     const minMilsecWaiting = 4000;
     const maxMilsecWaiting = 7000;
     let _minW = 100, // The exact value get's calculated
@@ -12,8 +11,6 @@ function DialogBox(id, callback)
         _hasEventListeners = !!window.addEventListener,
         _last_known_scroll_position = 0,
         _dialog,
-        _prevHeight = Number.NaN,
-        _prevWidth = Number.NaN,
         _dialogTitle,
         _dialogContent,
         _dialogButtonPane,
@@ -25,11 +22,9 @@ function DialogBox(id, callback)
         _leftPos, _topPos,
         _isDrag = false,
         _isMinimized = false,
-        _isResize = false,
         _isButton = false,
         _state = CollectStateEnum.none,
         _isButtonHovered = false, // Let's use standard hover (see css)
-        _resizeMode = '',
         _whichButton,
         _buttons,
         _tabBoundary,
@@ -41,7 +36,8 @@ function DialogBox(id, callback)
         setDialogContent, // Forward declaration to get access to this function in the closure
         _invitationLists = [],
         _currentInvitationList = null,
-        _createListDialog = null;
+        _createListDialog = null,
+        _maxInvitationNum = 10;
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -140,13 +136,11 @@ function DialogBox(id, callback)
             _isButtonHovered = false;
             _isButton = true;
         }
-        else if (evt.target === _dialogTitle && _resizeMode == '')
+        else if (evt.target === _dialogTitle)
         {
             setCursor('move');
             _isDrag = true;
         }
-        else if (_resizeMode != '')
-            _isResize = true;
             
         return returnEvent(evt);
     };
@@ -209,208 +203,16 @@ function DialogBox(id, callback)
         saveDialogSettings();
     };
 
-    function resizeW(evt)
-    {
-        var dw = _startX - evt.pageX;
-        if (_leftPos - dw < 0)
-            dw = _leftPos;
-        var w = _startW + dw;
-        if (w < _minW) {
-            w = _minW;
-            dw = w - _startW;
-        }
-        _dialog.style.width = w + 'px';
-        _dialog.style.left = (_leftPos - dw) + 'px';
-    };
-
-    function resizeE(evt)
-    {
-        var dw = evt.pageX - _startX;
-        if (_leftPos + _startW + dw > _maxX)
-            dw = _maxX - _leftPos - _startW;
-        var w = _startW + dw;
-        if (w < _minW)
-            w = _minW;
-        _dialog.style.width = w + 'px';
-    };
-
-    function resizeN(evt)
-    {
-        var dh = _startY - evt.pageY;
-        if (_topPos - dh < 0)
-            dh = _topPos;
-        var h = _startH + dh;
-        if (h < _minH)
-        {
-            h = _minH;
-            dh = h - _startH;
-        }
-        _dialog.style.height = h + 'px';
-        _dialog.style.top = (_topPos - dh) + 'px';
-    };
-
-    function resizeS(evt)
-    {
-        var dh = evt.pageY - _startY;
-        if (_topPos + _startH + dh > _maxY)
-            dh = _maxY - _topPos - _startH;
-        var h = _startH + dh;
-        if (h < _minH)
-            h = _minH;
-        _dialog.style.height = h + 'px';
-    };
-
-    function resizeNW(evt)
-    {
-        var dw = _startX - evt.pageX;
-        var dh = _startY - evt.pageY;
-        if (_leftPos - dw < 0)
-            dw = _leftPos;
-        if (_topPos - dh < 0)
-            dh = _topPos;
-        var w = _startW + dw;
-        var h = _startH + dh;
-        if (w < _minW)
-        {
-            w = _minW;
-            dw = w - _startW;
-        }
-        if (h < _minH)
-        {
-            h = _minH;
-            dh = h - _startH;
-        }
-        _dialog.style.width = w + 'px';
-        _dialog.style.height = h + 'px';
-        _dialog.style.left = (_leftPos - dw) + 'px';
-        _dialog.style.top = (_topPos - dh) + 'px';
-    };
-
-    function resizeSW(evt)
-    {
-        var dw = _startX - evt.pageX;
-        var dh = evt.pageY - _startY;
-        if (_leftPos - dw < 0)
-            dw = _leftPos;
-        if (_topPos + _startH + dh > _maxY)
-            dh = _maxY - _topPos - _startH;
-        var w = _startW + dw;
-        var h = _startH + dh;
-        if (w < _minW) {
-            w = _minW;
-            dw = w - _startW;
-        }
-        if (h < _minH)
-            h = _minH;
-        _dialog.style.width = w + 'px';
-        _dialog.style.height = h + 'px';
-        _dialog.style.left = (_leftPos - dw) + 'px';
-    };
-
-    function resizeNE(evt)
-    {
-        var dw = evt.pageX - _startX;
-        var dh = _startY - evt.pageY;
-        if (_leftPos + _startW + dw > _maxX)
-            dw = _maxX - _leftPos - _startW;
-        if (_topPos - dh < 0)
-            dh = _topPos;
-        var w = _startW + dw;
-        var h = _startH + dh;
-        if (w < _minW)
-            w = _minW;
-        if (h < _minH) {
-            h = _minH;
-            dh = h - _startH;
-        }
-        _dialog.style.width = w + 'px';
-        _dialog.style.height = h + 'px';
-        _dialog.style.top = (_topPos - dh) + 'px';
-    };
-
-    function resizeSE(evt)
-    {
-        var dw = evt.pageX - _startX;
-        var dh = evt.pageY - _startY;
-        if (_leftPos + _startW + dw > _maxX)
-            dw = _maxX - _leftPos - _startW;
-        if (_topPos + _startH + dh > _maxY)
-            dh = _maxY - _topPos - _startH;
-        var w = _startW + dw;
-        var h = _startH + dh;
-        if (w < _minW)
-            w = _minW;
-        if (h < _minH)
-            h = _minH;
-        _dialog.style.width = w + 'px';
-        _dialog.style.height = h + 'px';
-        setDialogContent();
-    };
-
-    function calcResizeMode(evt)
-    {
-        var cs, rm = '';
-        if (evt.target === _dialog || evt.target === _dialogTitle || evt.target === _buttons[0]) {
-            var rect = getOffset(_dialog);
-            if (evt.pageY < rect.top + _resizePixel)
-                rm = 'n';
-            else if (evt.pageY > rect.bottom - _resizePixel)
-                rm = 's';
-            if (evt.pageX < rect.left + _resizePixel)
-                rm += 'w';
-            else if (evt.pageX > rect.right - _resizePixel)
-                rm += 'e';
-        }
-        if (rm != '' && _resizeMode != rm) {
-            if (rm == 'n' || rm == 's')
-                cs = 'ns-resize';
-            else if (rm == 'e' || rm == 'w')
-                cs = 'ew-resize';
-            else if (rm == 'ne' || rm == 'sw')
-                cs = 'nesw-resize';
-            else if (rm == 'nw' || rm == 'se')
-                cs = 'nwse-resize';
-            setCursor(cs);
-            _resizeMode = rm;
-        }
-        else if (rm == '' && _resizeMode != '') {
-            setCursor('');
-            _resizeMode = '';
-        }
-        return rm;
-    };
-
     onMouseMove = function (evt)
     {
 		evt = evt || window.event;
 		// mousemove might run out of the dialog box during drag or resize, therefore we need to 
 		// attach the event to the whole document, but we need to take care that this  
 		// does not to mess up normal events outside of the dialog box.
-		if ( !(evt.target === _dialog || evt.target === _dialogTitle || evt.target === _buttons[0]) && !_isDrag && _resizeMode == '')
+		if ( !(evt.target === _dialog || evt.target === _dialogTitle || evt.target === _buttons[0]) && !_isDrag)
 			return;
         if (_isDrag)
             dragging(evt);
-        else if (_isResize)
-        {
-            if (_resizeMode == 'w')
-                resizeW(evt);
-            else if (_resizeMode == 'e')
-                resizeE(evt);
-            else if (_resizeMode == 'n')
-                resizeN(evt);
-            else if (_resizeMode == 's')
-                resizeS(evt);
-            else if (_resizeMode == 'nw')
-                resizeNW(evt);
-            else if (_resizeMode == 'sw')
-                resizeSW(evt);
-            else if (_resizeMode == 'ne')
-                resizeNE(evt);
-            else if (_resizeMode == 'se')
-                resizeSE(evt);
-            resizeDialogTitle();
-            saveDialogSettings();
-        }
         else if (!_isButton)
         {
             var rm = calcResizeMode(evt);
@@ -428,13 +230,6 @@ function DialogBox(id, callback)
         }
 		return returnEvent(evt);
 	};
-
-    //TODO: Change const '32' to value reading from css
-    function resizeDialogTitle()
-    {
-        if (_dialogTitle != null)
-            _dialogTitle.style.width = parseFloat(_dialog.style.width) - 32 + 'px';
-    };
 	
     onMouseUp = function (evt)
     {
@@ -450,19 +245,13 @@ function DialogBox(id, callback)
         // mousemove might run out of the dialog box during drag or resize, therefore we need to 
         // attach the event to the whole document, but we need to take care that this  
         // does not to mess up normal events outside of the dialog box.
-        if (!(evt.target === _dialog || evt.target === _dialogTitle || evt.target === _buttons[0]) && !_isDrag && _resizeMode == '')
+        if (!(evt.target === _dialog || evt.target === _dialogTitle || evt.target === _buttons[0]) && !_isDrag)
             return;
 
         if (_isDrag)
         {
             setCursor('');
             _isDrag = false;
-        }
-        else if (_isResize)
-        {
-            setCursor('');
-            _isResize = false;
-            _resizeMode = '';
         }
         else if (_isButton)
         {
@@ -472,11 +261,25 @@ function DialogBox(id, callback)
         return returnEvent(evt);
     };
 
-    minimizeDialogContent = function () {
-        _prevHeight = _dialog.style.height;
+    function openPanel(name, btn)
+    {
+        var x = document.getElementsByClassName("custonDialogPanels");
+        for (var i = 0; i < x.length; i++)
+            x[i].style.display = "none";
+        
+        var tablinks = document.getElementsByClassName("tablink");
+        for (i = 0; i < tablinks.length; i++)
+            tablinks[i].style.backgroundColor = "";
+
+        btn.style.backgroundColor = '#39c';
+
+        document.getElementById(name).style.display = "block";  
+    }
+
+    minimizeDialogContent = function () 
+    {
         _dialog.style.minHeight = 34 + 'px';
         _dialog.style.height = 34 + 'px';
-        _prevWidth = _dialog.style.width;
         _dialog.style.minWidth = 203 + 'px';
         _dialog.style.width = 203 + 'px';
         
@@ -490,22 +293,16 @@ function DialogBox(id, callback)
         _dialogTitle.style.width = 170 + 'px';
     },
 
-    maximizeDialogContent = function () {
-        _dialog.style.minHeight = '280px';
-        _dialog.style.minWidth = '400px';
-        if (isNaN(parseFloat(_prevHeight)))
-            _dialog.style.height = _dialog.style.minHeight;
-        else
-            _dialog.style.height = _prevHeight;
-        if (isNaN(parseFloat(_prevWidth)))
-            _dialog.style.width = _dialog.style.minWidth;
-        else
-            _dialog.style.width = _prevWidth;
+    maximizeDialogContent = function ()
+    {   
+        _dialog.style.height = '195px';
+        _dialog.style.width = '304px';
         _dialog.style.top = (window.innerHeight - (window.innerHeight - _dialog.style.height) + window.scrollY) - 51 + 'px';
         _dialogContent.style.visibility = 'visible';
         _dialogContent.style.display = 'block';
 
-        if (_dialogButtonPane) {
+        if (_dialogButtonPane)
+        {
             _dialogButtonPane.style.visibility = 'visible';
             _dialogButtonPane.style.display = 'block';
         }
@@ -520,6 +317,9 @@ function DialogBox(id, callback)
         {
             setTimeout(function ()
             {
+                if (_state == CollectStateEnum.stopCollection)
+                    return;
+
                 offset += delta;
                 window.scrollTo(0, offset);
             }, i * 1000);
@@ -528,11 +328,6 @@ function DialogBox(id, callback)
 
     parseGeneralSearchPage = function ()
     {
-        /*if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
-        {
-            _state = CollectStateEnum.stopCollection;
-            return;
-        }*/
         smoothScrollCurrentDocument();
 
         setTimeout(function ()
@@ -549,7 +344,7 @@ function DialogBox(id, callback)
                 }
                 for (var i = 0; i < divs.length; i++)
                 {
-                    if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= MaxPeopleNum)
+                    if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= _maxInvitationNum)
                     {
                         setState(CollectStateEnum.stopCollection);
                         return;
@@ -584,7 +379,7 @@ function DialogBox(id, callback)
                     _currentInvitationList.people.push(person);                    
                 }
                 saveCurrentInvitationList();
-                if (_currentInvitationList.people.length < MaxPeopleNum)
+                if (_currentInvitationList.people.length < _maxInvitationNum)
                     parseNextPageUrl();
             }, 1000);
         }, DocumentScrollDelta * 1000);
@@ -652,7 +447,7 @@ function DialogBox(id, callback)
 
         if (btn.name === "open")
         {
-            _invitedList.showInvitedList(_currentInvitationList);
+            _invitedList.showInvitedList(_state, _currentInvitationList);
         }
 
 		if (_callback)
@@ -725,10 +520,7 @@ function DialogBox(id, callback)
 			_dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before");
 		}
 
-		var w = _dialog.clientWidth 
-				- parseInt( _dialogContentStyle.left) // .dialog .content { left: 16px; }
-				- 16 // right margin?
-				,
+		var w = _dialog.clientWidth,
 			h = _dialog.clientHeight - (parseInt(_dialogContentStyle.top) // .dialog .content { top: 48px } 
 				+ 16 // ?
 				+ (_buttons.length > 1 ? 
@@ -819,7 +611,7 @@ function DialogBox(id, callback)
 		_dialog.style.visibility = 'hidden'; // We dont want to see anything..
 		_dialog.style.display = 'block'; // but we need to render it to get the size of the dialog box
 		_dialogTitle = _dialog.querySelector('.titlebar');
-		_dialogContent = _dialog.querySelector('.content');
+		_dialogContent = _dialog.querySelector('.customRootPanel');
 		_dialogButtonPane = _dialog.querySelector('.buttonpane');
         _buttons = _dialog.querySelectorAll('button');  // Ensure to get minimal width
         _invitaionDlg = new invitationDialog();
@@ -831,7 +623,21 @@ function DialogBox(id, callback)
         });
         this.loadInvitationLists();
 
-        
+        document.getElementById("cancelCollectBtn").disabled = true;
+        document.getElementById("cancelCollectBtn").style = "background-color: gray";
+
+        var invitationsBtn = document.getElementById("invitationsBtn");
+        invitationsBtn.onclick = function ()
+        {
+            openPanel('invitePnl', invitationsBtn);
+        };
+        var msgBtn = document.getElementById("msgBtn");
+        msgBtn.onclick = function()
+        {
+            openPanel('msgPnl', msgBtn);
+        };
+        openPanel('invitePnl', invitationsBtn);
+
 		// Let's try to get rid of some of constants in javascript but use values from css
 		var dialogStyle = getComputedStyle(_dialog),			
 			dialogContentStyle = getComputedStyle(_dialogContent),
@@ -879,6 +685,21 @@ function DialogBox(id, callback)
 
         _dialogTitle.tabIndex = '0';
         loadDialogSettings();
+
+        var iniviteNumInput = document.getElementById("invitationNumber");
+        setInputFilter(iniviteNumInput, function(value) 
+        {
+            return /^\d*$/.test(value);
+        });
+        iniviteNumInput.addEventListener("change", function ()
+        {
+            _maxInvitationNum = iniviteNumInput.value;
+            saveInvitationNum();
+        }.bind(this), false);
+        setInputFilter(document.getElementById('msgNumber'), function(value) 
+        {
+            return /^\d*$/.test(value);
+        });
 
 		_tabBoundary = document.createElement('div');
 		_tabBoundary.tabIndex = '0';
@@ -992,6 +813,12 @@ function DialogBox(id, callback)
         chrome.storage.local.set({ [name]: _currentInvitationList});
     };
 
+    function saveInvitationNum()
+    {
+        if (_dialog != null)
+            chrome.storage.local.set({ 'invitationNum': _maxInvitationNum });
+    }
+
     function saveDialogSettings()
     {
         if (_dialog != null)
@@ -999,14 +826,6 @@ function DialogBox(id, callback)
             chrome.storage.local.set({ 'relativeTop': (parseFloat(_dialog.style.top) - window.scrollY) / window.innerHeight });
             chrome.storage.local.set({ 'relativeLeft': (parseFloat(_dialog.style.left) - window.scrollX) / window.innerWidth });            
             chrome.storage.local.set({ 'dialogState': _isMinimized });
-            var height = _dialog.style.height;
-            if (height < _dialog.style.height)
-                height = _dialog.style.minHeight;
-            chrome.storage.local.set({ 'dialogHeight': height });
-            var width = _dialog.style.width;
-            if (width < _dialog.style.minWidth)
-                width = _dialog.style.minWidth;
-            chrome.storage.local.set({ 'dialogWidth': width });
         }
     };
 
@@ -1035,43 +854,40 @@ function DialogBox(id, callback)
                 var relativeLeft = result.relativeLeft;
                 _dialog.style.left = window.innerWidth * relativeLeft + window.scrollX + 'px';
             });
-
-            chrome.storage.local.get('dialogHeight', function (result)
+            chrome.storage.local.get('invitationNum', function (result)
             {
-                _dialog.style.height = result.dialogHeight;
-            });
-
-            chrome.storage.local.get('dialogWidth', function (result)
-            {                
-                _dialog.style.width = result.dialogWidth;
-                resizeDialogTitle();
+                if(result['invitationNum'] == undefined || result['invitationNum'] == '')
+                    _maxInvitationNum  = 10;
+                else
+                    _maxInvitationNum = result['invitationNum'];
+                document.getElementById('invitationNumber').value = _maxInvitationNum
             });
         }
     };
 
-    //I won LinkedIn's god damn div input!!!
-    function SetTextToLinkedinInput(div, text)
+    function setInputFilter(textbox, inputFilter)
     {
-        div.innerHTML = "<p>" + text + "</p>";
-        function simulateKey(keyCode, type, modifiers)
+        ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function(event)
         {
-            var evtName = (typeof (type) === "string") ? "key" + type : "keydown";
-            var modifier = (typeof (modifiers) === "object") ? modifier : {};
-            var event = document.createEvent("HTMLEvents");
-            event.initEvent(evtName, true, false);
-            event.keyCode = keyCode;
-            for (var i in modifiers)
-                event[i] = modifiers[i];
-            div.dispatchEvent(event);
-        }
-        simulateKey(38);
-        simulateKey(38, "up");
-        var event = new Event('input',
-        {
-            bubbles: true,
-            cancelable: true,
+            textbox.addEventListener(event, function()
+            {
+                if (inputFilter(this.value))
+                {
+                    this.oldValue = this.value;
+                    this.oldSelectionStart = this.selectionStart;
+                    this.oldSelectionEnd = this.selectionEnd;
+                } 
+                else if (this.hasOwnProperty("oldValue"))
+                {
+                    this.value = this.oldValue;
+                    this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                }
+                else 
+                {
+                    this.value = "";
+                }
+            });
         });
-        div.dispatchEvent(event);
     };
 
     // Execute constructor
