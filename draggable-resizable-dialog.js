@@ -1,6 +1,7 @@
 function DialogBox(id, callback)
 {
-    const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
+    const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 });
+    const SecurityLevelEnum = Object.freeze({ "safe": "Safe", "medium": "Medium", "low": "Low" });
     const DocumentScrollDelta = 3;
     const invitationsList = "invitationsList";    
     const minMilsecWaiting = 4000;
@@ -37,7 +38,9 @@ function DialogBox(id, callback)
         _invitationLists = [],
         _currentInvitationList = null,
         _createListDialog = null,
-        _maxInvitationNum = 10;
+        _maxInvitationNum = 10,
+        _securityLevel = SecurityLevelEnum.safe
+        _setupDialog = null;
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -215,9 +218,7 @@ function DialogBox(id, callback)
             dragging(evt);
         else if (!_isButton)
         {
-            var rm = calcResizeMode(evt);
-
-            if (evt.target != _buttons[0] && evt.target.tagName.toLowerCase() == 'button' || evt.target === _buttons[0] && rm == '')
+            if (evt.target != _buttons[0] && evt.target.tagName.toLowerCase() == 'button' || evt.target === _buttons[0])
             {
                 if (!_isButtonHovered || _isButtonHovered && evt.target != _whichButton)
                 {
@@ -381,6 +382,8 @@ function DialogBox(id, callback)
                 saveCurrentInvitationList();
                 if (_currentInvitationList.people.length < _maxInvitationNum)
                     parseNextPageUrl();
+                else
+                    setState(CollectStateEnum.stopCollection);
             }, 1000);
         }, DocumentScrollDelta * 1000);
     }
@@ -418,16 +421,7 @@ function DialogBox(id, callback)
     };
     	
 	whichClick = function(btn)
-    {        
-        if (btn.name === 'minimize')
-        {
-            if (_isMinimized == false)
-                minimizeDialogContent();
-            else
-                maximizeDialogContent();            
-            _isMinimized = !_isMinimized;
-            saveDialogSettings();
-        }
+    {   
         if (btn.name === "cancel")
         {
             setState(CollectStateEnum.stopCollection);
@@ -447,7 +441,7 @@ function DialogBox(id, callback)
 
         if (btn.name === "open")
         {
-            _invitedList.showInvitedList(_state, _currentInvitationList);
+            _invitedList.showInvitedList(_state, _currentInvitationList, _securityLevel);
         }
 
 		if (_callback)
@@ -617,6 +611,22 @@ function DialogBox(id, callback)
         _invitaionDlg = new invitationDialog();
         _invitedList = new invitedList(setState);
         _createListDialog = new createInvitationListDialog(this.createNewList);
+        _setupDialog = new createSetupDialog();
+        document.getElementById('linkedExtenderShowSetup').onclick = function()
+        {
+            _setupDialog.showSetupDialog(_securityLevel, setSecurityLevel);
+        }.bind(this);
+
+        document.getElementById('customDialogMinimizeBtn').onclick = function()
+        {
+            if (_isMinimized == false)
+                minimizeDialogContent();
+            else
+                maximizeDialogContent();            
+            _isMinimized = !_isMinimized;
+            saveDialogSettings();
+        }.bind(this);
+
         document.getElementById(invitationsList).addEventListener('change', (event) =>
         {
             this.invitationListChange(event);
@@ -848,7 +858,6 @@ function DialogBox(id, callback)
                 var relativeTop = result.relativeTop;
                 _dialog.style.top = window.innerHeight * relativeTop + window.scrollY + 'px';
             });
-
             chrome.storage.local.get('relativeLeft', function (result)
             {
                 var relativeLeft = result.relativeLeft;
@@ -861,6 +870,13 @@ function DialogBox(id, callback)
                 else
                     _maxInvitationNum = result['invitationNum'];
                 document.getElementById('invitationNumber').value = _maxInvitationNum
+            });
+            chrome.storage.local.get('linkedExtendreSecurityLevel', function (result)
+            {
+                if(result['linkedExtendreSecurityLevel'] == undefined)
+                    _securityLevel = SecurityLevelEnum.safe;
+                else
+                    _securityLevel = result['linkedExtendreSecurityLevel'];
             });
         }
     };
@@ -889,6 +905,17 @@ function DialogBox(id, callback)
             });
         });
     };
+
+    function setSecurityLevel(level)
+    {
+        _securityLevel = level;
+        saveSecurityLevel();
+    }
+
+    function saveSecurityLevel()
+    {
+        chrome.storage.local.set({ 'linkedExtendreSecurityLevel': _securityLevel });
+    }
 
     // Execute constructor
 	this.init(id, callback);

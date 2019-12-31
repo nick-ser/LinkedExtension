@@ -21,17 +21,3 @@ chrome.tabs.onRemoved.addListener(function (tabId, changeInfo)
     if(_tabId == tabId)
         _tabId = -1;
 });
-
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse)
-{
-    if (request.greeting == "SetUrl")
-    {
-        var url = request.url;
-        alert('Push state: ' + url);
-        window.history.pushState(null, null, url);
-        /*chrome.tabs.query({ currentWindow: false, active: false }, function (tab)
-        {
-            chrome.tabs.update(tab.id, { url: url });
-        });*/
-    }
-});

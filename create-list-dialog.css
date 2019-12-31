@@ -21,7 +21,7 @@
     border: 1px solid black;
     padding: 20px;
     margin: 0;
-    width: 30%;
+    width: 19.5%;
     -webkit-animation-name: animatetop;
     -webkit-animation-duration: 0.4s;
     animation-name: animatetop;
@@ -60,31 +60,42 @@
 
 .modalCreateListDlg button
 {
-    -webkit-transition: 0.25s;
-    transition: 0.25s;
-    color: #fff;
+    height: 32px; 
+    width: 70px; 
+    font-size: 1.1em;
+    padding: 0; 
+	background: #39c;
+	-webkit-transition: 0.25s;
+	transition: 0.25s;
+	color: #fff;
 }
 
-.modalCreateListDlg button::-moz-focus-inner
+.modalCreateListDlg button:first-child
 {
-    border: 0;
+    margin-left: 0;
 }
 
 .modalCreateListDlg button:hover,
-.modalCreateListDlg button.active
+.modalCreateListDlg button:focus
 {
-    cursor: pointer;
+    box-shadow: none;
+	outline: none !important;
 }
 
+.modalCreateListDlg button:disabled
+{
+    background-color: gray;
+}
+/*
 .modalCreateListDlg .modal-create-list button
 {
-    height: 32px; /* change allowed */
-    min-width: 100px; /* change allowed */
+    height: 32px; 
+    min-width: 100px; 
     font-size: 1.1em;
-    padding: 0em 1em 0em; /* irrelevant */
-    border: 2px solid #fff; /* change allowed */
-    border-radius: 4px; /* change allowed */
-    margin-left: 16px; /* change NOT allowed */
+    padding: 0em 1em 0em; 
+    border: 2px solid #fff;
+    border-radius: 4px;
+    margin-left: 16px;
     background: #39c;
 }
 
@@ -106,8 +117,8 @@
 
 .modalCreateListDlg > button
 {
-    width: 32px; /* change NOT allowed */
-    height: 32px; /* same as .dialog .titlebar height */
+    width: 32px; 
+    height: 32px; 
     position: absolute;
     top: 0;
     right: 0;
@@ -125,10 +136,10 @@
 
 .modalCreateListDlg > button.active
 {
-    background: #f55; /* irrelevant */
-    border: 1px solid #ddd; /* irrelevant */
+    background: #f55;
+    border: 1px solid #ddd;
 }
-
+*/
 .buttons
 {
     text-align: center;

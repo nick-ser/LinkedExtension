@@ -12,7 +12,13 @@ chrome.runtime.onMessage.addListener(request =>
         div.id = 'customDialog';
        
         div.innerHTML = `<div class="titlebar">LinkedExtender
-                    <button name="minimize">-</button>
+                    <button style="margin-right: 32.3px;" id="linkedExtenderShowSetup">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Windows_Settings_app_icon.png" 
+                            style="margin-bottom:3px; width: 15px; height: 15px;vertical-align: middle;"></img>
+                    </button>
+                    <button id="customDialogMinimizeBtn">
+                        <img src="https://www.pngrepo.com/png/202039/170/minimize.png" style="margin-bottom:3px; width: 15px; height: 15px;vertical-align: middle;"></img>
+                    </button>
                 </div>
                 <div class="customRootPanel">
                     <div style="margin-top: 1px; height: 32px;">

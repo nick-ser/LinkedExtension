@@ -10,12 +10,14 @@
         "invitation-dialog.css",
         "invited-list-dialog.css",
         "person-data-diaolg.css",
-        "create-list-dialog.css"
+        "create-list-dialog.css",
+        "setup-dialog.css"
       ],
       "js": [
         "draggable-resizable-dialog.js",
         "invitation-dialog.js",
         "content.js",
+        "setup-dialog.js",
         "invited-list-dialog.js",
         "person-data-diaolg.js",
         "create-list-dialog.js"

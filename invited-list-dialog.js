@@ -1,5 +1,6 @@
 function invitedList(setState)
 {
+    const SecurityLevelEnum = Object.freeze({ "safe": "Safe", "medium": "Medium", "low": "Low" })
     const FiltrationEnum = Object.freeze({ "byName": 1, "byPosition": 2, "byLocation": 3 })
     const InsertInfoEnum = Object.freeze({ "firstName": 1, "lastName": 2, "position" : 3, "location" : 4 })
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
@@ -9,6 +10,7 @@ function invitedList(setState)
     const LocationDelimiter = "%Location%";
     const DocumentScrollDelta = 4;
     const InviteBtnClass = "pv-s-profile-actions pv-s-profile-actions--connect ml2 artdeco-button artdeco-button--2 artdeco-button--primary ember-view";
+    const InviteBtnClass2 = "pv-s-profile-actions pv-s-profile-actions--connect pv-s-profile-actions__overflow-button full-width text-align-left ember-view";
     const AddNoteBtnClass = "mr1 artdeco-button artdeco-button--muted artdeco-button--3 artdeco-button--secondary ember-view";
     const TextAreaClass = "send-invite__custom-message mb3 ember-text-area ember-view";
     const SentButtonClass = "ml1 artdeco-button artdeco-button--3 artdeco-button--primary ember-view";
@@ -164,8 +166,7 @@ function invitedList(setState)
 
             _closeRef.addEventListener("click", function ()
             {
-                this.saveCurrentInvitationList();
-                this.closeInvitedList();
+                this.closeAndSave();
             }.bind(this), false);
 
             _txtArea.addEventListener("keyup", function ()
@@ -197,13 +198,19 @@ function invitedList(setState)
         }
     };
 
+    this.closeAndSave = async function ()
+    {
+        await this.saveCurrentInvitationList();
+        this.closeInvitedList();
+    }.bind(this);
+
     this.initOutput = function ()
     {
         var tbl = document.getElementById("outputTbl");
         if (tbl == undefined)
             return;
         tbl.innerHTML = '';
-        var invited = this.source.people.filter(person => person.isInvited);
+        var invited = this.source.people.filter(person => person.isInvited || person.isError);
 
         if (invited == undefined || invited.length == 0)
             return;
@@ -213,7 +220,7 @@ function invitedList(setState)
     this.addOutputInfo = function (person)
     {
         var tbl = document.getElementById("outputTbl");
-        if (tbl == undefined || person == undefined || !person.isInvited)
+        if (tbl == undefined || person == undefined || (!person.isInvited && !person.isError))
             return;
         var tr = document.createElement('tr');
         var td = document.createElement('td');
@@ -326,10 +333,27 @@ function invitedList(setState)
         this.updateTable();
     };
 
-    this.showInvitedList = function (state, source)
+    this.getDelay = function()
+    {
+        switch(this.securityLevel)
+        {
+            case SecurityLevelEnum.safe:
+                return Math.random() * (50000 - 30000) + 30000;
+            break;
+            case SecurityLevelEnum.medium:
+                return Math.random() * (40000 - 20000) + 20000;
+            break;
+            case SecurityLevelEnum.low:
+                return Math.random() * (30000 - 15000) + 15000;
+            break;
+        }
+    }.bind(this);
+
+    this.showInvitedList = function (state, source, securityLevel)
     {
         this.source = source;
         this.filteredSource = source.people;
+        this.securityLevel = securityLevel;
 
         var canclelBtn = document.getElementById('stopInvitation');
         var launchBtn = document.getElementById('launchInvitation');
@@ -486,10 +510,18 @@ function invitedList(setState)
 
     function addRow(person)
     {
-        var tr = document.createElement('tr');        
+        var tr = document.createElement('tr');
+        tr.id = person.url;
         fillExistingRow(tr, person);
         _table.appendChild(tr);
     };
+
+    function updateRow(person)
+    {
+        var tr = document.getElementById(person.url);
+        tr.innerHTML = '';
+        fillExistingRow(tr, person);
+    }
 
     function fillExistingRow(tr, person)
     {
@@ -507,8 +539,19 @@ function invitedList(setState)
 
     this.saveCurrentInvitationList = function ()
     {
-        var name = this.source.name;
-        chrome.storage.local.set({ [name]: this.source });
+        return new Promise(resolve =>
+            {
+                var name = this.source.name;
+                try
+                {
+                    chrome.storage.local.set({ [name]: this.source });
+                }
+                catch(e)
+                {
+                    console.log(e);
+                }
+                resolve();
+            });
     };
 
     function setTextToLinkedinInput(textArea, text)
@@ -548,7 +591,7 @@ function invitedList(setState)
         {
             if(_isCanceld)
                 break;
-            if(count++ > MaxInvitationSentCount)
+            if(count > MaxInvitationSentCount)
             {
                 alert('You have reached the limit for sending invitations.');
                 this.setState(CollectStateEnum.none);
@@ -559,19 +602,20 @@ function invitedList(setState)
             var person = notInvitetedPeople[i];
             try
             {
+                person.isError = false;
                 var msg = this.source.message.replace(FirstNameDelimiter, person.firstName);
                 msg = msg.replace(LastNameDelimiter, person.lastName);
                 msg = msg.replace(PositionDelimiter, person.position);
                 msg = msg.replace(LocationDelimiter, person.location);
-                
-                window.history.pushState(null, null, person.url);
-                await sleep(50);
-                window.history.back();
-                await sleep(70);
-                window.history.forward();
 
-                // TODO: Get from settings!!!!!!
+                await sleep(5000);                
+                window.history.pushState(null, null, person.url);
                 await sleep(5000);
+                window.history.back();
+                await sleep(1000);
+                window.history.forward();
+                var delay = this.getDelay();
+                await sleep(delay);
 
                 var delta = document.body.scrollHeight / DocumentScrollDelta;
                 var offset = 0.0;
@@ -585,7 +629,11 @@ function invitedList(setState)
                 
                 var inviteBtn = document.getElementsByClassName(InviteBtnClass)[0];
                 if(inviteBtn == undefined)
-                    throw("Invite button hasn't been found.");
+                {
+                    inviteBtn = document.getElementsByClassName(InviteBtnClass2)[0];
+                    if(inviteBtn == undefined)
+                        throw("Invite button hasn't been found.");
+                }
                 if(inviteBtn.disabled)
                     throw("Invite button is disabled.")
                 inviteBtn.click();
@@ -612,10 +660,15 @@ function invitedList(setState)
                 console.log(person.name + ": " + e);
                 person.isError = true;
             }
-            person.isInvited = true;
+            if(!person.isError)
+            {
+                person.isInvited = true;
+                count++;
+                this.progressBarInit();
+                updateRow(person);
+            }
             this.addOutputInfo(person);
-            this.progressBarInit();
-            this.saveCurrentInvitationList();
+            await this.saveCurrentInvitationList();
         }
         this.setState(CollectStateEnum.none);
     };
@@ -626,7 +679,7 @@ function invitedList(setState)
         {
             var today = new Date();
             var dd = String(today.getDate()).padStart(2, '0');
-            var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
             var yyyy = today.getFullYear();
             today = mm + '/' + dd + '/' + yyyy;
             let tmp = 
@@ -645,10 +698,21 @@ function invitedList(setState)
         {
             chrome.storage.local.get('invitationCount', function (result)
             {
+                var count = 0;
                 var tmp = result['invitationCount'];
                 if (tmp == undefined)
-                    resolve(0);
-                resolve(tmp.count);
+                    count = 0;
+                else
+                {
+                    var today = new Date();
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var yyyy = today.getFullYear();
+                    today = mm + '/' + dd + '/' + yyyy;
+                    if(today == tmp.date)
+                        count = tmp.count;
+                }
+                resolve(count);
             })
         });
     };
