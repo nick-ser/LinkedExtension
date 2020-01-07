@@ -138,10 +138,10 @@ function createSetupDialog()
     {
         return new Promise(resolve => 
         {
-            chrome.storage.local.get('messageCount', function (result)
+            chrome.storage.local.get('messagingCount', function (result)
             {
                 var count = 0;
-                var tmp = result['messageCount'];
+                var tmp = result['messagingCount'];
                 if (tmp == undefined)
                     count = 0;
                 else
@@ -207,7 +207,7 @@ function createSetupDialog()
                 date: today,
                 count: 0
             };
-            chrome.storage.local.set({ 'messageCount': tmp });
+            chrome.storage.local.set({ 'messagingCount': tmp });
             resolve();
         });
     };

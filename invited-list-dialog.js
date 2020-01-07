@@ -4,6 +4,7 @@ function invitedList(setState)
     const FiltrationEnum = Object.freeze({ "byName": 1, "byPosition": 2, "byLocation": 3 })
     const InsertInfoEnum = Object.freeze({ "firstName": 1, "lastName": 2, "position" : 3, "location" : 4 })
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 })
+    const CurrentViewEnum = Object.freeze({ "invitationView": 1, "messageView": 2, "csvView": 3 });
     const FirstNameDelimiter = "%FirstName%";
     const LastNameDelimiter = "%LastName%";
     const PositionDelimiter = "%Position%";
@@ -15,6 +16,11 @@ function invitedList(setState)
     const TextAreaClass = "send-invite__custom-message mb3 ember-text-area ember-view";
     const SentButtonClass = "ml1 artdeco-button artdeco-button--3 artdeco-button--primary ember-view";
     const MaxInvitationSentCount = 100;
+    const MaxMessagingCount = 100;
+    const SendMessageBtnClass = "pv-s-profile-actions pv-s-profile-actions--message ml2 artdeco-button artdeco-button--2 artdeco-button--primary ember-view";
+    const CloseSendMsgWindowBtnClass = "msg-overlay-bubble-header__control js-msg-close artdeco-button artdeco-button--circle artdeco-button--inverse artdeco-button--1 artdeco-button--tertiary ember-view";
+    const MsgTextAreaClass = "msg-form__contenteditable t-14 t-black--light t-normal flex-grow-1 notranslate";
+    const DoSendMsgBtnClass = "msg-form__send-button artdeco-button artdeco-button--1";
 
     let _table = null,
     _rootDiv = null,
@@ -53,7 +59,12 @@ function invitedList(setState)
                         <div class="deleteInvitationDiv"><button id="deleteInvitation" style="width: 80px; height: 30px;">Delete</button></div>
                     </div>
                     <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
-                        <input id="invitedOnly" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px; margin-left: -5px;" /><p>Show 'Not invited' only</p>
+                        <div id="invitedOnlyDiv" style="font-size: 16px;">
+                            <input id="invitedOnly" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px; margin-left: -5px;">Show 'Not invited' only</input>
+                        </div>
+                        <div id="resendMsgDiv" style="font-size: 16px;">
+                            <input id="resendMsg" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px; margin-left: 35px;">Resend messages</input>
+                        </div>
                     </div>
                     <div style="float: right; margin-right: 30px;">
                         <table style="border-collapse: collapse;">
@@ -125,7 +136,10 @@ function invitedList(setState)
                 stopBtn.style = 'background-color: #39c';                
                 launchBtn.disabled = true;
                 launchBtn.style = 'background-color: green';
-                this.startInvitationCampaign();
+                if(this.currentView == CurrentViewEnum.invitationView)
+                    this.startInvitationCampaign();
+                else if(this.currentView == CurrentViewEnum.messageView)
+                    this.startMessagingCampaign();
             }.bind(this);
 
             stopBtn.onclick = function()
@@ -200,7 +214,10 @@ function invitedList(setState)
 
     this.closeAndSave = async function ()
     {
-        await this.saveCurrentInvitationList();
+        if(this.currentView == CurrentViewEnum.invitationView)
+            await this.saveCurrentInvitationList();
+        else if(this.currentView == CurrentViewEnum.messageView)
+            await this.saveCurrentMessageList();
         this.closeInvitedList();
     }.bind(this);
 
@@ -349,11 +366,12 @@ function invitedList(setState)
         }
     }.bind(this);
 
-    this.showInvitedList = function (state, source, securityLevel)
+    this.showInvitedList = function (state, source, securityLevel, currentView)
     {
         this.source = source;
         this.filteredSource = source.people;
         this.securityLevel = securityLevel;
+        this.currentView = currentView;
 
         var canclelBtn = document.getElementById('stopInvitation');
         var launchBtn = document.getElementById('launchInvitation');
@@ -382,6 +400,20 @@ function invitedList(setState)
         this.initOutput();
         _txtArea.value = this.source.message;
 
+        if(this.currentView == CurrentViewEnum.invitationView)
+        {
+            document.getElementById("txtArea").setAttribute('maxlength', 300);
+            this.calcMessageLetters();
+            document.getElementById("msgLettersCounter").style.visibility = 'visible';
+            document.getElementById("resendMsgDiv").style.visibility = 'hidden';
+        }
+        else if(this.currentView == CurrentViewEnum.messageView)
+        {
+            document.getElementById("txtArea").removeAttribute('maxLength');
+            document.getElementById("msgLettersCounter").style.visibility = 'hidden';
+            document.getElementById("resendMsgDiv").style.visibility = 'visible';
+        }
+
         _rootDiv.style.display = 'block';
     }.bind(this);
 
@@ -392,10 +424,10 @@ function invitedList(setState)
             return;
 
         for (var i = 0; i < this.filteredSource.length; i++)
-            addRow(this.filteredSource[i]);
+            this.addRow(this.filteredSource[i]);
     };
 
-    function addInvitationFlagCell(tr, person)
+    this.addInvitationFlagCell = function (tr, person)
     {
         var td = document.createElement('td');
         td.className = "row";
@@ -404,28 +436,34 @@ function invitedList(setState)
         if (!person.isInvited)
         {
             p.className = "notInvitedParagraph";
-            p.innerText = "Not invited";
+            if(this.currentView == CurrentViewEnum.invitationView)
+                p.innerText = "Not invited";
+            else if(this.currentView == CurrentViewEnum.messageView)
+                p.innerText = "Not sent";
         }
         else
         {
             p.className = "invitedParagraph";
-            p.innerText = "Invited";
+            if(this.currentView == CurrentViewEnum.invitationView)
+                p.innerText = "Invited";
+            else if(this.currentView == CurrentViewEnum.messageView)
+                p.innerText = "Message sent";
         }       
         td.appendChild(p);
         tr.appendChild(td);
-    };
+    }.bind(this);
 
-    function updateRow(person, tr)
+    this.updateRow = function (person, tr)
     {
         for (var i = 0; i < tr.cells.length; ++i)
         {
             tr.cells[i].remove();
             i--;
         }
-        fillExistingRow(tr, person);
-    };
+        this.fillExistingRow(tr, person);
+    }.bind(this);
 
-    function addButtonCell(tr, person)
+    this.addButtonCell = function (tr, person)
     {
         var td = document.createElement('td');
         td.className = "row";
@@ -435,13 +473,13 @@ function invitedList(setState)
         button.setAttribute("style", "width: 100px; height: 30px;");
         button.onclick = function ()
         {
-            personDataDlg = new personDataDialog(button.person, updateRow, tr);
+            personDataDlg = new personDataDialog(button.person, this.updateRow, tr);
             personDataDlg.showPersonDataDialog();
-        };
+        }.bind(this);
         button.innerHTML = "Edit profile";
         td.appendChild(button);
         tr.appendChild(td);
-    };
+    }.bind(this);
 
     function addCheckboxCell(tr, person)
     {
@@ -508,29 +546,29 @@ function invitedList(setState)
         tr.appendChild(td)
     };
 
-    function addRow(person)
+    this.addRow = function (person)
     {
         var tr = document.createElement('tr');
         tr.id = person.url;
-        fillExistingRow(tr, person);
+        this.fillExistingRow(tr, person);
         _table.appendChild(tr);
-    };
+    }.bind(this);
 
-    function updateRow(person)
+    this.updateRow = function (person)
     {
         var tr = document.getElementById(person.url);
         tr.innerHTML = '';
-        fillExistingRow(tr, person);
-    }
+        this.fillExistingRow(tr, person);
+    }.bind(this);
 
-    function fillExistingRow(tr, person)
+    this.fillExistingRow = function (tr, person)
     {
         addCheckboxCell(tr, person);
         addImage(tr, person);
         addPersonInfoCell(tr, person);
-        addInvitationFlagCell(tr, person);
-        addButtonCell(tr, person);
-    };
+        this.addInvitationFlagCell(tr, person);
+        this.addButtonCell(tr, person);
+    }.bind(this);
 
     this.closeInvitedList = function ()
     {
@@ -541,7 +579,7 @@ function invitedList(setState)
     {
         return new Promise(resolve =>
             {
-                var name = this.source.name;
+                var name = this.source.name + '_invitation';
                 try
                 {
                     chrome.storage.local.set({ [name]: this.source });
@@ -552,6 +590,47 @@ function invitedList(setState)
                 }
                 resolve();
             });
+    };
+
+    this.saveCurrentMessageList = function ()
+    {
+        return new Promise(resolve =>
+            {
+                var name = this.source.name + '_message';
+                try
+                {
+                    chrome.storage.local.set({ [name]: this.source });
+                }
+                catch(e)
+                {
+                    console.log(e);
+                }
+                resolve();
+            });
+    };
+
+    function SetTextToLinkedinMsgWnd(div, text)
+    {
+        div.innerHTML = "<p>" + text + "</p>";
+        function simulateKey(keyCode, type, modifiers)
+        {
+            var evtName = (typeof (type) === "string") ? "key" + type : "keydown";
+            var modifier = (typeof (modifiers) === "object") ? modifier : {};
+            var event = document.createEvent("HTMLEvents");
+            event.initEvent(evtName, true, false);
+            event.keyCode = keyCode;
+            for (var i in modifiers)
+                event[i] = modifiers[i];
+            div.dispatchEvent(event);
+        }
+        simulateKey(38);
+        simulateKey(38, "up");
+        var event = new Event('input',
+        {
+            bubbles: true,
+            cancelable: true,
+        });
+        div.dispatchEvent(event);
     };
 
     function setTextToLinkedinInput(textArea, text)
@@ -583,6 +662,101 @@ function invitedList(setState)
         return new Promise(resolve => setTimeout(resolve, ms));
     };
 
+    this.startMessagingCampaign = async function()
+    {
+        var notMessagedPeople = null;
+        if(!document.getElementById('resendMsg').checked)
+            notMessagedPeople = this.source.people.filter(person => !person.isInvited);
+        else
+        {
+            this.source.people.forEach(p => p.isInvited = false);
+            notMessagedPeople = this.source.people;
+        }
+        var count = await loadMessagingCount();
+        for(let i =0; i<notMessagedPeople.length; i++)
+        {
+            if(_isCanceld)
+                break;
+            if(count > MaxMessagingCount)
+            {
+                alert('You have reached the limit for sending messages.');
+                this.setState(CollectStateEnum.none);
+                return;   
+            }
+            if(count % 3 == 0)
+                await saveMessagingCount(count);
+            var person = notMessagedPeople[i];
+            try
+            {
+                person.isError = false;
+                var msg = this.source.message.replace(FirstNameDelimiter, person.firstName);
+                msg = msg.replace(LastNameDelimiter, person.lastName);
+                msg = msg.replace(PositionDelimiter, person.position);
+                msg = msg.replace(LocationDelimiter, person.location);
+                await sleep(5000);                
+                window.history.pushState(null, null, person.url);
+                await sleep(5000);
+                window.history.back();
+                await sleep(1000);
+                window.history.forward();
+                var delay = Math.round(this.getDelay()) / 3;
+                await sleep(delay);
+                var delta = document.body.scrollHeight / DocumentScrollDelta;
+                var offset = 0.0;
+                for (let j = 0; j < DocumentScrollDelta; j++)
+                {
+                    offset += delta;
+                    window.scrollTo(0, offset);
+                    await sleep(j*1000);
+                }
+                window.scrollTo(0, 0);
+                var sendMsgBtn = document.getElementsByClassName(SendMessageBtnClass)[0];
+                if(sendMsgBtn == undefined)
+                    throw("Send msg button hasn't been found.");
+                if(sendMsgBtn.disabled)
+                    throw("Send msg button is disabled.")
+                sendMsgBtn.click();
+                await sleep(delay);
+
+                var msgDiv = document.getElementsByClassName(MsgTextAreaClass)[0];
+                if(msgDiv == undefined)
+                    throw("Message text area hasn't been found.");
+                SetTextToLinkedinMsgWnd(msgDiv, msg); 
+                
+                await sleep(5000);
+                var sentBtn = document.getElementsByClassName(DoSendMsgBtnClass)[0];
+                if(sentBtn == undefined)
+                    throw("Msg sent button hasn't been found.");
+                if(sentBtn.disabled)
+                    throw("Msg sent button is disabled.")
+                sentBtn.click();
+
+                await sleep(delay);
+                var closeSendMsgBtn = document.getElementsByClassName(CloseSendMsgWindowBtnClass)[0];
+                if(closeSendMsgBtn == undefined)
+                    throw("Close send msg window button hasn't been found.");
+                closeSendMsgBtn.click();
+            }
+            catch(e)
+            {
+                console.log(person.name + ": " + e);
+                person.isError = true;
+            }
+            if(!person.isError)
+            {
+                person.isInvited = true;
+                count++;
+                this.progressBarInit();
+                this.updateRow(person);
+            }
+            this.addOutputInfo(person);
+            await this.saveCurrentMessageList();
+        }
+        await saveMessagingCount(count);
+        this.setState(CollectStateEnum.none);
+        alert(notMessagedPeople.filter(person => person.isInvited).length + ' messages have been sent!');
+    };
+
     this.startInvitationCampaign = async function ()
     {
         var notInvitetedPeople = this.source.people.filter(person => !person.isInvited);
@@ -598,7 +772,8 @@ function invitedList(setState)
                 return;   
             }
 
-            await saveInvitationCount(count);
+            if(count % 3 == 0)
+                await saveInvitationCount(count);
             var person = notInvitetedPeople[i];
             try
             {
@@ -615,6 +790,7 @@ function invitedList(setState)
                 await sleep(1000);
                 window.history.forward();
                 var delay = this.getDelay();
+                console.log("Invitation sending delay: " + delay);
                 await sleep(delay);
 
                 var delta = document.body.scrollHeight / DocumentScrollDelta;
@@ -665,12 +841,33 @@ function invitedList(setState)
                 person.isInvited = true;
                 count++;
                 this.progressBarInit();
-                updateRow(person);
+                this.updateRow(person);
             }
             this.addOutputInfo(person);
             await this.saveCurrentInvitationList();
         }
+        await saveInvitationCount(count);
         this.setState(CollectStateEnum.none);
+        alert(notInvitetedPeople.filter(person => person.isInvited).length + ' invitations have been sent!');
+    };
+
+    function saveMessagingCount(count)
+    {
+        return new Promise(resolve =>
+        {
+            var today = new Date();
+            var dd = String(today.getDate()).padStart(2, '0');
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
+            var yyyy = today.getFullYear();
+            today = mm + '/' + dd + '/' + yyyy;
+            let tmp = 
+            {
+                date: today,
+                count: count
+            };
+            chrome.storage.local.set({ 'messagingCount': tmp });
+            resolve();
+        });
     };
 
     function saveInvitationCount(count)
@@ -690,6 +887,31 @@ function invitedList(setState)
             chrome.storage.local.set({ 'invitationCount': tmp });
             resolve();
         });
+    };
+
+    function loadMessagingCount()
+    {
+        return new Promise(resolve => 
+            {
+                chrome.storage.local.get('messagingCount', function (result)
+                {
+                    var count = 0;
+                    var tmp = result['messagingCount'];
+                    if (tmp == undefined)
+                        count = 0;
+                    else
+                    {
+                        var today = new Date();
+                        var dd = String(today.getDate()).padStart(2, '0');
+                        var mm = String(today.getMonth() + 1).padStart(2, '0');
+                        var yyyy = today.getFullYear();
+                        today = mm + '/' + dd + '/' + yyyy;
+                        if(today == tmp.date)
+                            count = tmp.count;
+                    }
+                    resolve(count);
+                })
+            });
     };
 
     function loadInvitationCount()

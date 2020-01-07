@@ -108,6 +108,19 @@ dialog .titlebar button.focus
 	border: 1px solid #39c;
 }
 
+.dialog select:disabled
+{
+	border: 1px solid gray;
+	color: gray;
+}
+
+.dialog select:enabled
+{
+	color: #fff;
+	border: 1px solid #39c;
+}
+
+
 .dialog select:hover,
 .dialog select:focus
 {
@@ -122,6 +135,18 @@ dialog .titlebar button.focus
 	font-size: 14px;
 	color: #fff;
 	background-color: transparent;
+}
+
+.dialog input:disabled
+{
+	border: 1px solid gray;
+	color: gray;
+}
+
+.dialog input:enabled
+{
+	color: #fff;
+	border: 1px solid #39c;
 }
 
 .dialog input:hover,

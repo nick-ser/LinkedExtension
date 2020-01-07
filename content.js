@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener(request =>
         div.id = 'customDialog';
        
         div.innerHTML = `<div class="titlebar">LinkedExtender
-                    <button style="margin-right: 32.3px;" id="linkedExtenderShowSetup">
+                    <button style="margin-right: 33px;" id="linkedExtenderShowSetup">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Windows_Settings_app_icon.png" 
                             style="margin-bottom:3px; width: 15px; height: 15px;vertical-align: middle;"></img>
                     </button>

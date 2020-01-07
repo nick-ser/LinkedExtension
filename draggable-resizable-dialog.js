@@ -2,10 +2,12 @@ function DialogBox(id, callback)
 {
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 });
     const SecurityLevelEnum = Object.freeze({ "safe": "Safe", "medium": "Medium", "low": "Low" });
+    const CurrentViewEnum = Object.freeze({ "invitationView": 1, "messageView": 2, "csvView": 3 });
     const DocumentScrollDelta = 3;
-    const invitationsList = "invitationsList";    
-    const minMilsecWaiting = 4000;
-    const maxMilsecWaiting = 7000;
+    const invitationsList = "invitationsList";
+    const messageList = "msgList";
+    const minMilsecWaiting = 8000;
+    const maxMilsecWaiting = 15000;
     let _minW = 100, // The exact value get's calculated
         _minH = 1, // The exact value get's calculated
         _resizePixel = 5,
@@ -36,11 +38,15 @@ function DialogBox(id, callback)
         whichClick, // Forward declaration to get access to this function in the closure
         setDialogContent, // Forward declaration to get access to this function in the closure
         _invitationLists = [],
+        _messageList = [],
         _currentInvitationList = null,
+        _currentMessageList = null,
         _createListDialog = null,
         _maxInvitationNum = 10,
+        _maxMsgNum = 10,
         _securityLevel = SecurityLevelEnum.safe
-        _setupDialog = null;
+        _setupDialog = null,
+        _currentView = CurrentViewEnum.invitationView;
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -273,6 +279,18 @@ function DialogBox(id, callback)
             tablinks[i].style.backgroundColor = "";
 
         btn.style.backgroundColor = '#39c';
+        switch(btn.id)
+        {
+            case 'msgBtn':
+                _currentView = CurrentViewEnum.messageView;
+            break;
+            case 'csvBtn':
+                _currentView = CurrentViewEnum.csvView;
+            break;
+            default:
+                _currentView = CurrentViewEnum.invitationView;
+            break;
+        }
 
         document.getElementById(name).style.display = "block";  
     }
@@ -326,6 +344,67 @@ function DialogBox(id, callback)
             }, i * 1000);
         }
     }
+
+    parseMessagesPage = function()
+    {
+        smoothScrollCurrentDocument();
+
+        setTimeout(function ()
+        {
+            window.scrollTo(0, 0);
+            setTimeout(function ()
+            {
+                var divs = document.getElementsByClassName("search-result__wrapper");
+                if (divs == undefined || divs.length == 0)
+                {
+                    alert("There is no people");
+                    setState(CollectStateEnum.stopCollection);
+                    return;
+                }
+                for (var i = 0; i < divs.length; i++)
+                {
+                    if (_state == CollectStateEnum.stopCollection || _currentMessageList.people.length >= _maxMsgNum)
+                    {
+                        setState(CollectStateEnum.stopCollection);
+                        return;
+                    }
+                    var div = divs[i];
+                    var actionButton = div.getElementsByClassName("message-anywhere-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
+                    if (actionButton == undefined || actionButton.disabled)
+                        continue;
+                    var url = div.getElementsByClassName("search-result__result-link ember-view")[0];
+                    if (url == undefined || url.href === "")
+                        continue;
+                    var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
+                    var name = TrimParsedString(div.getElementsByClassName("name actor-name")[0]);
+                    var parsedName = ParseName(name);
+                    var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
+                    var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
+                    if (_currentMessageList.people.find(p => p.url == url.href))
+                        continue;
+                    let person =
+                    {
+                        imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
+                        name: name,
+                        firstName: parsedName.split("/")[0],
+                        lastName: parsedName.split("/")[1],
+                        position: position,
+                        location: location,
+                        isInvited: false,
+                        isSelected: false,
+                        isError: false,
+                        url: url.href,
+                    };
+                    _currentMessageList.people.push(person);
+                }
+                saveCurrentMessageList();
+                if (_currentMessageList.people.length < _maxMsgNum)
+                    parseNextPageUrl();
+                else
+                    setState(CollectStateEnum.stopCollection);
+            }, 1000);
+        }, DocumentScrollDelta * 1000);
+    };
 
     parseGeneralSearchPage = function ()
     {
@@ -430,29 +509,50 @@ function DialogBox(id, callback)
         
         if (btn.name === 'collect')
         {
-            if (window.location.toString().indexOf("linkedin.com/search/results/people/") == -1)
-                _invitaionDlg.showInvitationDialog();
-            else
+            if(_currentView == CurrentViewEnum.invitationView)
             {
-                parseGeneralSearchPage();
-                setState(CollectStateEnum.collect);
+                if (window.location.toString().indexOf("facetNetwork=%5B%22S%22%5D") == -1)
+                    _invitaionDlg.showInvitationDialog();
+                else
+                {
+                    parseGeneralSearchPage();
+                    setState(CollectStateEnum.collect);
+                }   
+            }
+            else if(_currentView == CurrentViewEnum.messageView)
+            {
+                if (window.location.toString().indexOf("facetNetwork=%5B%22F%22%5D") == -1)
+                {
+                    window.history.pushState(null, null, 'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH');
+                    setTimeout(() => window.history.back(), 200);
+                    setTimeout(() => window.history.forward(), 500);
+                }
+                else
+                {
+                    parseMessagesPage();
+                    setState(CollectStateEnum.collect);
+                }
             }
         }
 
         if (btn.name === "open")
         {
-            _invitedList.showInvitedList(_state, _currentInvitationList, _securityLevel);
+            if(_currentView == CurrentViewEnum.invitationView)
+                _invitedList.showInvitedList(_state, _currentInvitationList, _securityLevel, _currentView);
+            else if(_currentView == CurrentViewEnum.messageView)
+                _invitedList.showInvitedList(_state, _currentMessageList, _securityLevel, _currentView);
         }
 
 		if (_callback)
 			_callback(btn.name);
     };
 
-    setState = function(state)
+    updateInvitationView = function()
     {
-        _state = state;
         var collectBtn = document.getElementById("collectBtn"); 
         var cancelBtn = document.getElementById("cancelCollectBtn");
+        var inviteSelector = document.getElementById("invitationsList");
+        var initationNum = document.getElementById("invitationNumber");
         switch(_state)
         {
             case CollectStateEnum.collect:
@@ -460,26 +560,104 @@ function DialogBox(id, callback)
                 collectBtn.style="background-color: green";
                 cancelBtn.disabled = false;
                 cancelBtn.style = "background-color: #39c";
+                inviteSelector.disabled = true;
+                initationNum.disabled = true;
+                document.getElementById("msgBtn").disabled = true;
+                document.getElementById("csvBtn").disabled = true;
                 break;          
             case CollectStateEnum.stopCollection: 
                 collectBtn.disabled = false;
                 collectBtn.style="background-color: #39c";
                 cancelBtn.disabled = true;
                 cancelBtn.style = "background-color: gray";
+                inviteSelector.disabled = false;
+                initationNum.disabled = false;
+                document.getElementById("msgBtn").disabled = false;
+                document.getElementById("csvBtn").disabled = false;
                 break;          
             case CollectStateEnum.none:
                 cancelBtn.disabled = true;
                 cancelBtn.style = "background-color: gray";
                 collectBtn.disabled = false;
                 collectBtn.style="background-color: #39c";
+                inviteSelector.disabled = false;
+                initationNum.disabled = false;
+                document.getElementById("cancelMsgCollectBtn").disabled = true;
+                document.getElementById("msgBtn").disabled = false;
+                document.getElementById("csvBtn").disabled = false;
                 break;
             case CollectStateEnum.invitation:
                 cancelBtn.disabled = true;
                 cancelBtn.style = "background-color: gray";
                 collectBtn.disabled = true;
                 collectBtn.style="background-color: gray";
+                inviteSelector.disabled = true;
+                initationNum.disabled = true;
+                document.getElementById("msgBtn").disabled = true;
+                document.getElementById("csvBtn").disabled = true;
                 break;
           }
+    }
+
+    updateMessageView = function()
+    {
+        var collectBtn = document.getElementById("collectMsgBtn"); 
+        var cancelBtn = document.getElementById("cancelMsgCollectBtn");
+        var inviteSelector = document.getElementById("msgList");
+        var initationNum = document.getElementById("msgNumber");
+        switch(_state)
+        {
+            case CollectStateEnum.collect:
+                collectBtn.disabled = true;
+                collectBtn.style="background-color: green";
+                cancelBtn.disabled = false;
+                cancelBtn.style = "background-color: #39c";
+                inviteSelector.disabled = true;
+                initationNum.disabled = true;
+                document.getElementById("invitationsBtn").disabled = true;
+                document.getElementById("csvBtn").disabled = true;
+                break;          
+            case CollectStateEnum.stopCollection: 
+                collectBtn.disabled = false;
+                collectBtn.style="background-color: #39c";
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                inviteSelector.disabled = false;
+                initationNum.disabled = false;
+                document.getElementById("invitationsBtn").disabled = false;
+                document.getElementById("csvBtn").disabled = false;
+                break;          
+            case CollectStateEnum.none:
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                collectBtn.disabled = false;
+                collectBtn.style="background-color: #39c";
+                inviteSelector.disabled = false;
+                initationNum.disabled = false;
+                document.getElementById("invitationsBtn").disabled = false;
+                document.getElementById("csvBtn").disabled = false;
+                document.getElementById("cancelCollectBtn").disabled = true;
+                break;
+            case CollectStateEnum.invitation:
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                collectBtn.disabled = true;
+                collectBtn.style="background-color: gray";
+                inviteSelector.disabled = true;
+                initationNum.disabled = true;
+                document.getElementById("invitationsBtn").disabled = true;
+                document.getElementById("csvBtn").disabled = true;
+                break;
+          }
+    };
+
+    setState = function(state)
+    {
+        _state = state;
+        if(_currentView == CurrentViewEnum.invitationView)
+            updateInvitationView();
+        else if(_currentView == CurrentViewEnum.messageView)
+            updateMessageView();
     }
     
 	getOffset = function(elm)
@@ -552,8 +730,11 @@ function DialogBox(id, callback)
         if (request.type === 'linkedOpened' && _state == CollectStateEnum.collect)
         {
             setTimeout(() =>
-            {            
-                parseGeneralSearchPage();
+            {
+                if(_currentView == CurrentViewEnum.invitationView)
+                    parseGeneralSearchPage();
+                else if(_currentView == CurrentViewEnum.messageView)
+                    parseMessagesPage();
             }, getRandomArbitrary(minMilsecWaiting, maxMilsecWaiting));
         }
     });
@@ -569,33 +750,75 @@ function DialogBox(id, callback)
         this.saveCurrentInvitationListName(event.target.value);
     }.bind(this);
 
+    this.messageListChange = function (event)
+    {
+        if (event.target.value != "Create new list")
+            loadMessageList();
+        else
+        {
+            _createListDialog.showCreateListDialog(_messageList);
+        }
+        this.saveCurrentMessageListName(event.target.value);
+    }.bind(this);
+
     this.createNewList = function (listName)
     {
-        _invitationLists.splice(_invitationLists.length - 1, 0, listName);
-        var invitationsLst = document.getElementById(invitationsList);
-        invitationsLst.innerHTML = '';
-        _invitationLists.forEach(name =>
+        if(_currentView == CurrentViewEnum.invitationView)
         {
-            var option = document.createElement("option");
-            option.text = name;
-            option.value = name;
-            invitationsLst.add(option);
-        });
-        invitationsLst.value = listName;
-        chrome.storage.local.set(
+            _invitationLists.splice(_invitationLists.length - 1, 0, listName);
+            var invitationsLst = document.getElementById(invitationsList);
+            invitationsLst.innerHTML = '';
+            _invitationLists.forEach(name =>
             {
-                invitationsList: _invitationLists
+                var option = document.createElement("option");
+                option.text = name;
+                option.value = name;
+                invitationsLst.add(option);
+            });
+            invitationsLst.value = listName;
+            chrome.storage.local.set(
+            {
+                [invitationsList]: _invitationLists
             });
 
-        this.saveCurrentInvitationListName(listName);
-        _currentInvitationList =
+            this.saveCurrentInvitationListName(listName);
+            _currentInvitationList =
             {
                 type: "invitation",
                 name: listName,
                 people: [],
                 message: "",
             };
-        saveCurrentInvitationList();
+            saveCurrentInvitationList();
+        }
+        else if(_currentView == CurrentViewEnum.messageView)
+        {
+            _messageList.splice(_messageList.length - 1, 0, listName);
+            var msgList = document.getElementById(messageList);
+            msgList.innerHTML = '';
+            _messageList.forEach(name =>
+            {
+                var option = document.createElement("option");
+                option.text = name;
+                option.value = name;
+                msgList.add(option);
+            });
+            msgList.value = listName;
+            chrome.storage.local.set(
+            {
+                [messageList]: _messageList
+            });
+            this.saveCurrentMessageListName(listName);
+            _currentMessageList =
+            {
+                type: "message",
+                name: listName,
+                people: [],
+                message: "",
+            };
+            saveCurrentMessageList();
+        }
+        
     }.bind(this);
 
     this.init = function (id, callback)
@@ -631,10 +854,18 @@ function DialogBox(id, callback)
         {
             this.invitationListChange(event);
         });
+
+        document.getElementById(messageList).addEventListener('change', (event) =>
+        {
+            this.messageListChange(event);
+        });
+
         this.loadInvitationLists();
 
         document.getElementById("cancelCollectBtn").disabled = true;
         document.getElementById("cancelCollectBtn").style = "background-color: gray";
+        document.getElementById("cancelMsgCollectBtn").disabled = true;
+        document.getElementById("cancelMsgCollectBtn").style = "background-color: gray";
 
         var invitationsBtn = document.getElementById("invitationsBtn");
         invitationsBtn.onclick = function ()
@@ -706,10 +937,17 @@ function DialogBox(id, callback)
             _maxInvitationNum = iniviteNumInput.value;
             saveInvitationNum();
         }.bind(this), false);
-        setInputFilter(document.getElementById('msgNumber'), function(value) 
+
+        var msgNumInput = document.getElementById('msgNumber');
+        setInputFilter(msgNumInput, function(value) 
         {
             return /^\d*$/.test(value);
         });
+        msgNumInput.addEventListener("change", function ()
+        {
+            _maxMsgNum = msgNumInput.value;
+            saveMsgNum();
+        }.bind(this), false);
 
 		_tabBoundary = document.createElement('div');
 		_tabBoundary.tabIndex = '0';
@@ -760,9 +998,9 @@ function DialogBox(id, callback)
     {
         var element = document.getElementById(invitationsList);
         var listName = element.value;
-        chrome.storage.local.get(listName, function (result)
+        chrome.storage.local.get(listName + '_invitation', function (result)
         {
-            if (result[listName] == undefined)
+            if (result[listName + '_invitation'] == undefined)
             {
                 _currentInvitationList =
                     {
@@ -773,13 +1011,39 @@ function DialogBox(id, callback)
                     };
             }
             else
-                _currentInvitationList = result[listName];
+                _currentInvitationList = result[listName + '_invitation'];
+        });
+    };
+
+    loadMessageList = function ()
+    {
+        var element = document.getElementById(messageList);
+        var listName = element.value;
+        chrome.storage.local.get(listName + '_message', function (result)
+        {
+            if (result[listName + '_message'] == undefined)
+            {
+                _currentMessageList =
+                    {
+                        type: "message",
+                        name: listName,
+                        people: [],
+                        message: "",
+                    };
+            }
+            else
+                _currentMessageList = result[listName + '_message'];
         });
     };
 
     this.saveCurrentInvitationListName = function (name)
     {
         chrome.storage.local.set({ "currentInvitationListName": name });
+    }.bind(this);
+
+    this.saveCurrentMessageListName = function (name)
+    {
+        chrome.storage.local.set({"currentMessageListName": name });
     }.bind(this);
 
     this.loadCurrentInvitationListName = function ()
@@ -792,6 +1056,17 @@ function DialogBox(id, callback)
             loadInvitationList();
         });
 
+    }.bind(this);
+
+    this.loadCurrentMessageListName = function()
+    {
+        chrome.storage.local.get("currentMessageListName", function (result)
+        {
+            var element = document.getElementById(messageList);
+            var name = result["currentMessageListName"];            
+            element.value = name;
+            loadMessageList();
+        });
     }.bind(this);
 
     this.loadInvitationLists = function ()
@@ -814,19 +1089,50 @@ function DialogBox(id, callback)
                 invitationsSelector.add(option);
             });
         });
+        chrome.storage.local.get([messageList], function(result)
+        {
+            if(result[messageList] == undefined)
+            {
+                _messageList.push('Default');
+                _messageList.push('Create new list');
+            }
+            else
+            _messageList = result[messageList];            
+            
+            var msgSelector = document.getElementById(messageList);
+            _messageList.forEach(listName => {
+                var option = document.createElement("option");
+                option.text = listName;
+                option.value = listName;
+                msgSelector.add(option);
+            });
+        });
         this.loadCurrentInvitationListName();
+        this.loadCurrentMessageListName();
     };
 
     saveCurrentInvitationList = function ()
     {
-        var name = _currentInvitationList.name;
+        var name = _currentInvitationList.name + '_invitation';
         chrome.storage.local.set({ [name]: _currentInvitationList});
+    };
+
+    saveCurrentMessageList = function ()
+    {
+        var name = _currentMessageList.name + '_message';
+        chrome.storage.local.set({ [name]: _currentMessageList});
     };
 
     function saveInvitationNum()
     {
         if (_dialog != null)
             chrome.storage.local.set({ 'invitationNum': _maxInvitationNum });
+    }
+
+    function saveMsgNum()
+    {
+        if (_dialog != null)
+            chrome.storage.local.set({ 'msgNum': _maxMsgNum });
     }
 
     function saveDialogSettings()
@@ -870,6 +1176,14 @@ function DialogBox(id, callback)
                 else
                     _maxInvitationNum = result['invitationNum'];
                 document.getElementById('invitationNumber').value = _maxInvitationNum
+            });
+            chrome.storage.local.get('msgNum', function (result)
+            {
+                if(result['msgNum'] == undefined || result['msgNum'] == '')
+                    _maxMsgNum  = 10;
+                else
+                    _maxMsgNum = result['msgNum'];
+                document.getElementById('msgNumber').value = _maxMsgNum
             });
             chrome.storage.local.get('linkedExtendreSecurityLevel', function (result)
             {
