@@ -934,6 +934,8 @@ function DialogBox(id, callback)
         });
         iniviteNumInput.addEventListener("change", function ()
         {
+            if(iniviteNumInput.value == '')
+                iniviteNumInput.value = 1;
             _maxInvitationNum = iniviteNumInput.value;
             saveInvitationNum();
         }.bind(this), false);
@@ -945,6 +947,8 @@ function DialogBox(id, callback)
         });
         msgNumInput.addEventListener("change", function ()
         {
+            if(msgNumInput.value == '')
+                msgNumInput.value = 1;
             _maxMsgNum = msgNumInput.value;
             saveMsgNum();
         }.bind(this), false);
@@ -1071,12 +1075,24 @@ function DialogBox(id, callback)
 
     this.loadInvitationLists = function ()
     {
+        let defaultListName = 'Default';
         chrome.storage.local.get([invitationsList], function (result)
         {
+            let isFound = true;
             if (result[invitationsList] == undefined)
             {
-                _invitationLists.push('Default');
+                _invitationLists.push(defaultListName);
                 _invitationLists.push('Create new list');
+                _currentInvitationList =
+                {
+                    type: "invitation",
+                    name: defaultListName,
+                    people: [],
+                    message: "",
+                };
+                this.saveCurrentInvitationListName(defaultListName);
+                saveCurrentInvitationList();
+                isFound = false;
             }
             else
                 _invitationLists = result[invitationsList];            
@@ -1088,16 +1104,29 @@ function DialogBox(id, callback)
                 option.value = listName;
                 invitationsSelector.add(option);
             });
+            if(!isFound)
+                invitationsSelector.value = defaultListName;
         });
         chrome.storage.local.get([messageList], function(result)
         {
+            let isFound = true;
             if(result[messageList] == undefined)
             {
-                _messageList.push('Default');
+                _messageList.push(defaultListName);
                 _messageList.push('Create new list');
+                _currentMessageList =
+                {
+                    type: "message",
+                    name: defaultListName,
+                    people: [],
+                    message: "",
+                };
+                this.saveCurrentMessageListName(defaultListName);
+                saveCurrentMessageList();
+                isFound = false;
             }
             else
-            _messageList = result[messageList];            
+                _messageList = result[messageList];            
             
             var msgSelector = document.getElementById(messageList);
             _messageList.forEach(listName => {
@@ -1106,6 +1135,8 @@ function DialogBox(id, callback)
                 option.value = listName;
                 msgSelector.add(option);
             });
+            if(!isFound)
+                msgSelector.value = defaultListName;
         });
         this.loadCurrentInvitationListName();
         this.loadCurrentMessageListName();

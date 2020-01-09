@@ -106,6 +106,7 @@ dialog .titlebar button.focus
 {
 	color: #fff;
 	border: 1px solid #39c;
+	background-color: #B0B0B0;
 }
 
 .dialog select:disabled

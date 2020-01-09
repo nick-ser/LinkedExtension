@@ -130,6 +130,11 @@ function invitedList(setState)
             var stopBtn = document.getElementById("stopInvitation");
             launchBtn.onclick = function()
             {
+                if(this.source.message == '')
+                {
+                    alert('You have to set a message.');
+                    return;
+                }
                 this.setState(CollectStateEnum.invitation);
                 _isCanceld = false;                
                 stopBtn.disabled = false;
@@ -355,13 +360,13 @@ function invitedList(setState)
         switch(this.securityLevel)
         {
             case SecurityLevelEnum.safe:
-                return Math.random() * (50000 - 30000) + 30000;
+                return Math.random() * (300000 - 180000) + 180000;
             break;
             case SecurityLevelEnum.medium:
-                return Math.random() * (40000 - 20000) + 20000;
+                return Math.random() * (240000 - 120000) + 120000;
             break;
             case SecurityLevelEnum.low:
-                return Math.random() * (30000 - 15000) + 15000;
+                return Math.random() * (180000 - 60000) + 60000;
             break;
         }
     }.bind(this);
