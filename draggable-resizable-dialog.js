@@ -747,7 +747,7 @@ function DialogBox(id, callback)
         {
             _createListDialog.showCreateListDialog(_invitationLists);
         }
-        this.saveCurrentInvitationListName(event.target.value);
+        saveCurrentInvitationListName(event.target.value);
     }.bind(this);
 
     this.messageListChange = function (event)
@@ -758,7 +758,7 @@ function DialogBox(id, callback)
         {
             _createListDialog.showCreateListDialog(_messageList);
         }
-        this.saveCurrentMessageListName(event.target.value);
+        saveCurrentMessageListName(event.target.value);
     }.bind(this);
 
     this.createNewList = function (listName)
@@ -781,7 +781,7 @@ function DialogBox(id, callback)
                 [invitationsList]: _invitationLists
             });
 
-            this.saveCurrentInvitationListName(listName);
+            saveCurrentInvitationListName(listName);
             _currentInvitationList =
             {
                 type: "invitation",
@@ -808,7 +808,7 @@ function DialogBox(id, callback)
             {
                 [messageList]: _messageList
             });
-            this.saveCurrentMessageListName(listName);
+            saveCurrentMessageListName(listName);
             _currentMessageList =
             {
                 type: "message",
@@ -1040,15 +1040,15 @@ function DialogBox(id, callback)
         });
     };
 
-    this.saveCurrentInvitationListName = function (name)
+    saveCurrentInvitationListName = function (name)
     {
         chrome.storage.local.set({ "currentInvitationListName": name });
-    }.bind(this);
+    };
 
-    this.saveCurrentMessageListName = function (name)
+    saveCurrentMessageListName = function (name)
     {
         chrome.storage.local.set({"currentMessageListName": name });
-    }.bind(this);
+    };
 
     this.loadCurrentInvitationListName = function ()
     {
@@ -1090,7 +1090,7 @@ function DialogBox(id, callback)
                     people: [],
                     message: "",
                 };
-                this.saveCurrentInvitationListName(defaultListName);
+                saveCurrentInvitationListName(defaultListName);
                 saveCurrentInvitationList();
                 isFound = false;
             }
@@ -1121,7 +1121,7 @@ function DialogBox(id, callback)
                     people: [],
                     message: "",
                 };
-                this.saveCurrentMessageListName(defaultListName);
+                saveCurrentMessageListName(defaultListName);
                 saveCurrentMessageList();
                 isFound = false;
             }
