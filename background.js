@@ -21,3 +21,18 @@ chrome.tabs.onRemoved.addListener(function (tabId, changeInfo)
     if(_tabId == tabId)
         _tabId = -1;
 });
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse)
+{
+    if (request.greeting == "downloadFile")
+    {
+        var url = window.webkitURL || window.URL;
+       
+        var blob = new Blob([request.content], {type: 'text/csv'});
+        var href = url.createObjectURL(blob);
+        chrome.downloads.download({url:href, filename:'Hello.csv'},function(downloadId)
+        {
+            console.log("download begin, the downId is:" + downloadId);
+        })
+    }
+});

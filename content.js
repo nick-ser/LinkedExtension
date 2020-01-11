@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener(request =>
                             </div>
                             <div style="margin-top: 10px;">
                                 <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> How many profiles to invite: </label>
-                                <input id="invitationNumber" style="height: 26px; width: 52px; margin-left: 22px;"></input>
+                                <input id="invitationNumber" style="height: 26px; width: 52px; margin-left: 23px;"></input>
                                 </div>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <button id="collectBtn" name="collect">Collect</button>
@@ -54,6 +54,21 @@ chrome.runtime.onMessage.addListener(request =>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <button id="collectMsgBtn" name="collect">Collect</button>
                                 <button id="cancelMsgCollectBtn" name="cancel">Cancel</button>
+                                <button name="open">Open</button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; display: none" id="csvPnl" class='custonDialogPanels'>
+                            <div>
+                                <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> List name: </label>
+                                <select class="classic" id="csvList" style="height: 26px; width: 200px;"></select>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> How many profiles to parse: </label>
+                                <input id="csvNumber" style="height: 26px; width: 52px; margin-left: 23px;"></input>
+                                </div>
+                            <div style="margin-top: 10px; margin-left: 10px;">
+                                <button id="collectCsvBtn" name="collect">Collect</button>
+                                <button id="cancelCsvCollectBtn" name="cancel">Cancel</button>
                                 <button name="open">Open</button>
                             </div>
                         </div>

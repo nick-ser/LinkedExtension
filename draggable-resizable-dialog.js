@@ -6,6 +6,7 @@ function DialogBox(id, callback)
     const DocumentScrollDelta = 3;
     const invitationsList = "invitationsList";
     const messageList = "msgList";
+    const csvList = "csvList";
     const minMilsecWaiting = 8000;
     const maxMilsecWaiting = 15000;
     let _minW = 100, // The exact value get's calculated
@@ -39,14 +40,18 @@ function DialogBox(id, callback)
         setDialogContent, // Forward declaration to get access to this function in the closure
         _invitationLists = [],
         _messageList = [],
+        _csvList = [],
         _currentInvitationList = null,
         _currentMessageList = null,
+        _currentCsvList = null,
         _createListDialog = null,
         _maxInvitationNum = 10,
         _maxMsgNum = 10,
-        _securityLevel = SecurityLevelEnum.safe
+        _maxCsvNum = 10,
+        _securityLevel = SecurityLevelEnum.safe,
         _setupDialog = null,
-        _currentView = CurrentViewEnum.invitationView;
+        _currentView = CurrentViewEnum.invitationView,
+        _delimiter = ',';
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -345,7 +350,7 @@ function DialogBox(id, callback)
         }
     }
 
-    parseMessagesPage = function()
+    parseFirstConnectionsPage = function(currentList, maxNum, saveFunc)
     {
         smoothScrollCurrentDocument();
 
@@ -363,7 +368,7 @@ function DialogBox(id, callback)
                 }
                 for (var i = 0; i < divs.length; i++)
                 {
-                    if (_state == CollectStateEnum.stopCollection || _currentMessageList.people.length >= _maxMsgNum)
+                    if (_state == CollectStateEnum.stopCollection || currentList.people.length >= maxNum)
                     {
                         setState(CollectStateEnum.stopCollection);
                         return;
@@ -380,7 +385,7 @@ function DialogBox(id, callback)
                     var parsedName = ParseName(name);
                     var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
                     var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
-                    if (_currentMessageList.people.find(p => p.url == url.href))
+                    if (currentList.people.find(p => p.url == url.href))
                         continue;
                     let person =
                     {
@@ -395,10 +400,10 @@ function DialogBox(id, callback)
                         isError: false,
                         url: url.href,
                     };
-                    _currentMessageList.people.push(person);
+                    currentList.people.push(person);
                 }
-                saveCurrentMessageList();
-                if (_currentMessageList.people.length < _maxMsgNum)
+                saveFunc();
+                if (currentList.people.length < maxNum)
                     parseNextPageUrl();
                 else
                     setState(CollectStateEnum.stopCollection);
@@ -529,7 +534,21 @@ function DialogBox(id, callback)
                 }
                 else
                 {
-                    parseMessagesPage();
+                    parseFirstConnectionsPage(_currentMessageList, _maxMsgNum, saveCurrentMessageList);
+                    setState(CollectStateEnum.collect);
+                }
+            }
+            else if(_currentView == CurrentViewEnum.csvView)
+            {
+                if (window.location.toString().indexOf("facetNetwork=%5B%22F%22%5D") == -1)
+                {
+                    window.history.pushState(null, null, 'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH');
+                    setTimeout(() => window.history.back(), 200);
+                    setTimeout(() => window.history.forward(), 500);
+                }
+                else
+                {
+                    parseFirstConnectionsPage(_currentCsvList, _maxCsvNum, saveCurrentCsvList);
                     setState(CollectStateEnum.collect);
                 }
             }
@@ -541,6 +560,8 @@ function DialogBox(id, callback)
                 _invitedList.showInvitedList(_state, _currentInvitationList, _securityLevel, _currentView);
             else if(_currentView == CurrentViewEnum.messageView)
                 _invitedList.showInvitedList(_state, _currentMessageList, _securityLevel, _currentView);
+            else if(_currentView == CurrentViewEnum.csvView)
+                _invitedList.showInvitedList(_state, _currentCsvList, _securityLevel, _currentView);
         }
 
 		if (_callback)
@@ -583,6 +604,7 @@ function DialogBox(id, callback)
                 inviteSelector.disabled = false;
                 initationNum.disabled = false;
                 document.getElementById("cancelMsgCollectBtn").disabled = true;
+                document.getElementById("cancelCsvCollectBtn").disabled = true;
                 document.getElementById("msgBtn").disabled = false;
                 document.getElementById("csvBtn").disabled = false;
                 break;
@@ -597,14 +619,14 @@ function DialogBox(id, callback)
                 document.getElementById("csvBtn").disabled = true;
                 break;
           }
-    }
-
-    updateMessageView = function()
+    };
+    
+    updateCsvView = function()
     {
-        var collectBtn = document.getElementById("collectMsgBtn"); 
-        var cancelBtn = document.getElementById("cancelMsgCollectBtn");
-        var inviteSelector = document.getElementById("msgList");
-        var initationNum = document.getElementById("msgNumber");
+        var collectBtn = document.getElementById("collectCsvBtn"); 
+        var cancelBtn = document.getElementById("cancelCsvCollectBtn");
+        var selector = document.getElementById("csvList");
+        var num = document.getElementById("csvNumber");
         switch(_state)
         {
             case CollectStateEnum.collect:
@@ -612,8 +634,61 @@ function DialogBox(id, callback)
                 collectBtn.style="background-color: green";
                 cancelBtn.disabled = false;
                 cancelBtn.style = "background-color: #39c";
-                inviteSelector.disabled = true;
-                initationNum.disabled = true;
+                selector.disabled = true;
+                num.disabled = true;
+                document.getElementById("invitationsBtn").disabled = true;
+                document.getElementById("msgBtn").disabled = true;
+                break;          
+            case CollectStateEnum.stopCollection: 
+                collectBtn.disabled = false;
+                collectBtn.style="background-color: #39c";
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                selector.disabled = false;
+                num.disabled = false;
+                document.getElementById("invitationsBtn").disabled = false;
+                document.getElementById("msgBtn").disabled = false;
+                break;          
+            case CollectStateEnum.none:
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                collectBtn.disabled = false;
+                collectBtn.style="background-color: #39c";
+                selector.disabled = false;
+                num.disabled = false;
+                document.getElementById("invitationsBtn").disabled = false;
+                document.getElementById("msgBtn").disabled = false;
+                document.getElementById("cancelCollectBtn").disabled = true;
+                document.getElementById("cancelMsgCollectBtn").disabled = true;
+                break;
+            case CollectStateEnum.invitation:
+                cancelBtn.disabled = true;
+                cancelBtn.style = "background-color: gray";
+                collectBtn.disabled = true;
+                collectBtn.style="background-color: gray";
+                selector.disabled = true;
+                num.disabled = true;
+                document.getElementById("invitationsBtn").disabled = true;
+                document.getElementById("msgBtn").disabled = true;
+                break;
+          }
+    };
+
+    updateMessageView = function()
+    {
+        var collectBtn = document.getElementById("collectMsgBtn"); 
+        var cancelBtn = document.getElementById("cancelMsgCollectBtn");
+        var selector = document.getElementById("msgList");
+        var num = document.getElementById("msgNumber");
+        switch(_state)
+        {
+            case CollectStateEnum.collect:
+                collectBtn.disabled = true;
+                collectBtn.style="background-color: green";
+                cancelBtn.disabled = false;
+                cancelBtn.style = "background-color: #39c";
+                selector.disabled = true;
+                num.disabled = true;
                 document.getElementById("invitationsBtn").disabled = true;
                 document.getElementById("csvBtn").disabled = true;
                 break;          
@@ -622,8 +697,8 @@ function DialogBox(id, callback)
                 collectBtn.style="background-color: #39c";
                 cancelBtn.disabled = true;
                 cancelBtn.style = "background-color: gray";
-                inviteSelector.disabled = false;
-                initationNum.disabled = false;
+                selector.disabled = false;
+                num.disabled = false;
                 document.getElementById("invitationsBtn").disabled = false;
                 document.getElementById("csvBtn").disabled = false;
                 break;          
@@ -632,19 +707,20 @@ function DialogBox(id, callback)
                 cancelBtn.style = "background-color: gray";
                 collectBtn.disabled = false;
                 collectBtn.style="background-color: #39c";
-                inviteSelector.disabled = false;
-                initationNum.disabled = false;
+                selector.disabled = false;
+                num.disabled = false;
                 document.getElementById("invitationsBtn").disabled = false;
                 document.getElementById("csvBtn").disabled = false;
                 document.getElementById("cancelCollectBtn").disabled = true;
+                document.getElementById("cancelCsvCollectBtn").disabled = true;
                 break;
             case CollectStateEnum.invitation:
                 cancelBtn.disabled = true;
                 cancelBtn.style = "background-color: gray";
                 collectBtn.disabled = true;
                 collectBtn.style="background-color: gray";
-                inviteSelector.disabled = true;
-                initationNum.disabled = true;
+                selector.disabled = true;
+                num.disabled = true;
                 document.getElementById("invitationsBtn").disabled = true;
                 document.getElementById("csvBtn").disabled = true;
                 break;
@@ -658,6 +734,8 @@ function DialogBox(id, callback)
             updateInvitationView();
         else if(_currentView == CurrentViewEnum.messageView)
             updateMessageView();
+        else if(_currentView == CurrentViewEnum.csvView)
+            updateCsvView();
     }
     
 	getOffset = function(elm)
@@ -734,7 +812,9 @@ function DialogBox(id, callback)
                 if(_currentView == CurrentViewEnum.invitationView)
                     parseGeneralSearchPage();
                 else if(_currentView == CurrentViewEnum.messageView)
-                    parseMessagesPage();
+                    parseFirstConnectionsPage(_currentMessageList, _maxMsgNum, saveCurrentMessageList);
+                else if(_currentView == CurrentViewEnum.csvView)
+                    parseFirstConnectionsPage(_currentCsvList, _maxCsvNum, saveCurrentCsvList);
             }, getRandomArbitrary(minMilsecWaiting, maxMilsecWaiting));
         }
     });
@@ -744,21 +824,26 @@ function DialogBox(id, callback)
         if (event.target.value != "Create new list")
             loadInvitationList();
         else
-        {
             _createListDialog.showCreateListDialog(_invitationLists);
-        }
         saveCurrentInvitationListName(event.target.value);
     }.bind(this);
 
     this.messageListChange = function (event)
     {
         if (event.target.value != "Create new list")
-            loadMessageList();
+            loadCurrentMessageList();
         else
-        {
             _createListDialog.showCreateListDialog(_messageList);
-        }
         saveCurrentMessageListName(event.target.value);
+    }.bind(this);
+
+    this.csvListChange = function (event)
+    {
+        if (event.target.value != "Create new list")
+            loadCurrentCsvList();
+        else
+            _createListDialog.showCreateListDialog(_csvList);
+        saveCurrentCsvListName(event.target.value);
     }.bind(this);
 
     this.createNewList = function (listName)
@@ -818,6 +903,30 @@ function DialogBox(id, callback)
             };
             saveCurrentMessageList();
         }
+        else if(_currentView == CurrentViewEnum.csvView)
+        {
+            _csvList.splice(_csvList.length - 1, 0, listName);
+            var csvList = document.getElementById('csvList');
+            csvList.innerHTML = '';
+            _csvList.forEach(name =>
+            {
+                var option = document.createElement("option");
+                option.text = name;
+                option.value = name;
+                csvList.add(option);
+            });
+            csvList.value = listName;
+            chrome.storage.local.set({ 'csvList': _csvList });
+            saveCurrentCsvListName(listName);
+            _currentCsvList =
+            {
+                type: "csv",
+                name: listName,
+                people: [],
+                message: "",
+            };
+            saveCurrentCsvList();
+        }
         
     }.bind(this);
 
@@ -837,7 +946,7 @@ function DialogBox(id, callback)
         _setupDialog = new createSetupDialog();
         document.getElementById('linkedExtenderShowSetup').onclick = function()
         {
-            _setupDialog.showSetupDialog(_securityLevel, setSecurityLevel);
+            _setupDialog.showSetupDialog(_securityLevel, _delimiter, setSecurityLevel, setDelimiter);
         }.bind(this);
 
         document.getElementById('customDialogMinimizeBtn').onclick = function()
@@ -859,13 +968,19 @@ function DialogBox(id, callback)
         {
             this.messageListChange(event);
         });
+        document.getElementById(csvList).addEventListener('change', (event) =>
+        {
+            this.csvListChange(event);
+        });
 
-        this.loadInvitationLists();
+        this.loadAllLists();
 
         document.getElementById("cancelCollectBtn").disabled = true;
         document.getElementById("cancelCollectBtn").style = "background-color: gray";
         document.getElementById("cancelMsgCollectBtn").disabled = true;
         document.getElementById("cancelMsgCollectBtn").style = "background-color: gray";
+        document.getElementById("cancelCsvCollectBtn").disabled = true;
+        document.getElementById("cancelCsvCollectBtn").style = "background-color: gray";
 
         var invitationsBtn = document.getElementById("invitationsBtn");
         invitationsBtn.onclick = function ()
@@ -877,6 +992,12 @@ function DialogBox(id, callback)
         {
             openPanel('msgPnl', msgBtn);
         };
+        var csvBtn = document.getElementById("csvBtn");
+        csvBtn.onclick = function()
+        {
+            openPanel('csvPnl', csvBtn);
+        };
+
         openPanel('invitePnl', invitationsBtn);
 
 		// Let's try to get rid of some of constants in javascript but use values from css
@@ -953,6 +1074,19 @@ function DialogBox(id, callback)
             saveMsgNum();
         }.bind(this), false);
 
+        var csvNumInput = document.getElementById('csvNumber');
+        setInputFilter(csvNumInput, function(value) 
+        {
+            return /^\d*$/.test(value);
+        });
+        csvNumInput.addEventListener("change", function ()
+        {
+            if(csvNumInput.value == '')
+                csvNumInput.value = 1;
+            _maxCsvNum = csvNumInput.value;
+            saveCsvNum();
+        }.bind(this), false);
+
 		_tabBoundary = document.createElement('div');
 		_tabBoundary.tabIndex = '0';
 		_dialog.appendChild(_tabBoundary);
@@ -1019,7 +1153,7 @@ function DialogBox(id, callback)
         });
     };
 
-    loadMessageList = function ()
+    loadCurrentMessageList = function ()
     {
         var element = document.getElementById(messageList);
         var listName = element.value;
@@ -1040,6 +1174,27 @@ function DialogBox(id, callback)
         });
     };
 
+    loadCurrentCsvList = function ()
+    {
+        var element = document.getElementById(csvList);
+        var listName = element.value;
+        chrome.storage.local.get(listName + '_csv', function (result)
+        {
+            if (result[listName + '_csv'] == undefined)
+            {
+                _currentCsvList =
+                    {
+                        type: "csv",
+                        name: listName,
+                        people: [],
+                        message: "",
+                    };
+            }
+            else
+                _currentCsvList = result[listName + '_csv'];
+        });
+    };
+
     saveCurrentInvitationListName = function (name)
     {
         chrome.storage.local.set({ "currentInvitationListName": name });
@@ -1049,6 +1204,11 @@ function DialogBox(id, callback)
     {
         chrome.storage.local.set({"currentMessageListName": name });
     };
+
+    saveCurrentCsvListName = function (name)
+    {
+        chrome.storage.local.set({"currentCsvListName": name });
+    }
 
     this.loadCurrentInvitationListName = function ()
     {
@@ -1069,11 +1229,22 @@ function DialogBox(id, callback)
             var element = document.getElementById(messageList);
             var name = result["currentMessageListName"];            
             element.value = name;
-            loadMessageList();
+            loadCurrentMessageList();
         });
     }.bind(this);
 
-    this.loadInvitationLists = function ()
+    this.loadCurrentCsvListName = function()
+    {
+        chrome.storage.local.get("currentCsvListName", function (result)
+        {
+            var element = document.getElementById(csvList);
+            var name = result["currentCsvListName"];            
+            element.value = name;
+            loadCurrentCsvList();
+        });
+    }.bind(this);
+
+    this.loadAllLists = function ()
     {
         let defaultListName = 'Default';
         chrome.storage.local.get([invitationsList], function (result)
@@ -1138,8 +1309,40 @@ function DialogBox(id, callback)
             if(!isFound)
                 msgSelector.value = defaultListName;
         });
+        chrome.storage.local.get([csvList], function(result)
+        {
+            let isFound = true;
+            if(result[csvList] == undefined)
+            {
+                _csvList.push(defaultListName);
+                _csvList.push('Create new list');
+                _currentCsvList =
+                {
+                    type: "csv",
+                    name: defaultListName,
+                    people: [],
+                    message: "",
+                };
+                saveCurrentCsvListName(defaultListName);
+                saveCurrentCsvList();
+                isFound = false;
+            }
+            else
+                _csvList = result[csvList];            
+            
+            var csvSelector = document.getElementById(csvList);
+            _csvList.forEach(listName => {
+                var option = document.createElement("option");
+                option.text = listName;
+                option.value = listName;
+                csvSelector.add(option);
+            });
+            if(!isFound)
+                csvSelector.value = defaultListName;
+        });
         this.loadCurrentInvitationListName();
         this.loadCurrentMessageListName();
+        this.loadCurrentCsvListName();
     };
 
     saveCurrentInvitationList = function ()
@@ -1154,6 +1357,12 @@ function DialogBox(id, callback)
         chrome.storage.local.set({ [name]: _currentMessageList});
     };
 
+    saveCurrentCsvList = function ()
+    {
+        var name = _currentCsvList.name + '_csv';
+        chrome.storage.local.set({ [name]: _currentCsvList});
+    };
+
     function saveInvitationNum()
     {
         if (_dialog != null)
@@ -1164,6 +1373,12 @@ function DialogBox(id, callback)
     {
         if (_dialog != null)
             chrome.storage.local.set({ 'msgNum': _maxMsgNum });
+    }
+
+    function saveCsvNum()
+    {
+        if (_dialog != null)
+            chrome.storage.local.set({ 'csvNum': _maxCsvNum });
     }
 
     function saveDialogSettings()
@@ -1216,12 +1431,27 @@ function DialogBox(id, callback)
                     _maxMsgNum = result['msgNum'];
                 document.getElementById('msgNumber').value = _maxMsgNum
             });
+            chrome.storage.local.get('csvNum', function (result)
+            {
+                if(result['csvNum'] == undefined || result['csvNum'] == '')
+                    _maxCsvNum  = 10;
+                else
+                    _maxCsvNum = result['csvNum'];
+                document.getElementById('csvNumber').value = _maxCsvNum
+            });
             chrome.storage.local.get('linkedExtendreSecurityLevel', function (result)
             {
                 if(result['linkedExtendreSecurityLevel'] == undefined)
                     _securityLevel = SecurityLevelEnum.safe;
                 else
                     _securityLevel = result['linkedExtendreSecurityLevel'];
+            });
+            chrome.storage.local.get('linkedExtenderDelimiter', function (result)
+            {
+                if(result['linkedExtenderDelimiter'] == undefined)
+                    _delimiter = ',';
+                else
+                    _delimiter = result['linkedExtenderDelimiter'];
             });
         }
     };
@@ -1255,6 +1485,17 @@ function DialogBox(id, callback)
     {
         _securityLevel = level;
         saveSecurityLevel();
+    }
+
+    function setDelimiter(delimiter)
+    {
+        _delimiter = delimiter;
+        saveDelimiter();
+    }
+
+    function saveDelimiter()
+    {
+        chrome.storage.local.set({ 'linkedExtenderDelimiter': _delimiter });
     }
 
     function saveSecurityLevel()

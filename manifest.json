@@ -41,7 +41,8 @@
     "https://*.linkedin.com/*",
     "http://www.linkedin.com/*",
     "https://www.linkedin.com/*",
-    "webNavigation"
+    "webNavigation",
+    "downloads"
   ],
   "web_accessible_resources": [ "*.html" ]
 }

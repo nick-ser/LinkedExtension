@@ -58,7 +58,7 @@ function invitedList(setState)
                         </div>
                         <div class="deleteInvitationDiv"><button id="deleteInvitation" style="width: 80px; height: 30px;">Delete</button></div>
                     </div>
-                    <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
+                    <div id="checkPnl" style="display: flex; margin-top: 10px; margin-bottom: 5px;">
                         <div id="invitedOnlyDiv" style="font-size: 16px;">
                             <input id="invitedOnly" type="checkbox" class="checkbox" style="margin-right: 10px; margin-top:2px; margin-left: -5px;">Show 'Not invited' only</input>
                         </div>
@@ -70,7 +70,7 @@ function invitedList(setState)
                         <table style="border-collapse: collapse;">
                             <tr>
                                 <td>
-                                <div style="display: flex; margin-left: 20px; margin-bottom: 10px;">
+                                <div id="greetingsPnl" style="display: flex; margin-left: 20px; margin-bottom: 10px;">
                                     <button id="firstNameInsert" style="width: 90px; height: 30px;">First Name</button>
                                     <button id="lastNameInsert" style="width: 90px; height: 30px; margin-left: 10px">Last Name</button>
                                     <button id="positionInsert" style="width: 90px; height: 30px; margin-left: 10px">Position</button>
@@ -100,7 +100,7 @@ function invitedList(setState)
                         </tr>
                         <tr>
                             <td>
-                                <div style="height: 40vh; overflow-y: auto;">
+                                <div id="outputDiv" style="height: 40vh; overflow-y: auto; margin-top: 10px;">
                                     <table id="outputTbl" style="float: right; width: 33vw; margin-top: 10px;" rules="all" cellspacing="0"></table>
                                 </div>
                             </td>
@@ -114,6 +114,7 @@ function invitedList(setState)
                     <div style="display: flex; margin-right: 35px; float: right;">
                         <button id="launchInvitation" style="width: 80px; height: 30px;">Launch</button>
                         <button id="stopInvitation" style="width: 80px; height: 30px; margin-left: 10px;">Stop</button>
+                        <button id="dwnldCsv">Download</button>
                     </div>
                 </div>`;
             document.body.appendChild(_rootDiv);
@@ -128,8 +129,21 @@ function invitedList(setState)
 
             var launchBtn = document.getElementById("launchInvitation");
             var stopBtn = document.getElementById("stopInvitation");
+            var downloadBtn = document.getElementById("dwnldCsv");
             launchBtn.onclick = function()
             {
+                /*
+                var CSV = [
+                    '"1","Hello","world","its","me"',
+                    '"2","val1","val2","val3","val4"',
+                    '"3","val1","val2","val3","val4"'
+                  ].join('\n');
+                chrome.runtime.sendMessage({ greeting: 'downloadFile', content: [CSV] }, function (response)
+                {
+                    console.log("Request has been sent");
+                });
+                */
+            
                 if(this.source.message == '')
                 {
                     alert('You have to set a message.');
@@ -145,6 +159,7 @@ function invitedList(setState)
                     this.startInvitationCampaign();
                 else if(this.currentView == CurrentViewEnum.messageView)
                     this.startMessagingCampaign();
+                
             }.bind(this);
 
             stopBtn.onclick = function()
@@ -153,8 +168,24 @@ function invitedList(setState)
                 stopBtn.style = 'background-color: gray';                
                 launchBtn.disabled = false;
                 launchBtn.style = 'background-color: #39c';
+                var invited = this.source.people.filter(person => person.isInvited);
+                if(invited != undefined && invited.length > 0)
+                {
+                    downloadBtn.disabled = false;
+                    downloadBtn.style = 'background-color: #39c';
+                }
+                else
+                {
+                    downloadBtn.disabled = true;
+                    downloadBtn.style = 'background-color: gray'; 
+                }
                 this.setState(CollectStateEnum.none);
                 _isCanceld = true;
+            }.bind(this);
+
+            downloadBtn.onclick = function()
+            {
+
             }.bind(this);
 
             var delButton = document.getElementById("deleteInvitation");
@@ -223,6 +254,8 @@ function invitedList(setState)
             await this.saveCurrentInvitationList();
         else if(this.currentView == CurrentViewEnum.messageView)
             await this.saveCurrentMessageList();
+        else if(this.currentView == CurrentViewEnum.csvView)
+            await this.saveCurrentCsvList();
         this.closeInvitedList();
     }.bind(this);
 
@@ -263,7 +296,7 @@ function invitedList(setState)
         else
         {
             p1.className = "outputParagraph";
-            p1.innerText = "Sent";
+            p1.innerText = this.currentView != CurrentViewEnum.csvView ? "Sent" : "Parsed";
         }
         td1.appendChild(p1);
         tr.appendChild(td1);
@@ -380,21 +413,19 @@ function invitedList(setState)
 
         var canclelBtn = document.getElementById('stopInvitation');
         var launchBtn = document.getElementById('launchInvitation');
-        if(state != CollectStateEnum.invitation)
-        {
-            canclelBtn.disabled = true;
-            canclelBtn.style = 'background-color: gray';
-            
-            launchBtn.disabled = false;
-            launchBtn.style = 'background-color: #39c';
-        }
-        else
+        var downloadBtn = document.getElementById('dwnldCsv');
+        canclelBtn.disabled = true;
+        canclelBtn.style = 'background-color: gray';
+        launchBtn.disabled = false;
+        launchBtn.style = 'background-color: #39c';
+        if(state == CollectStateEnum.invitation)
         {
             canclelBtn.disabled = false;
             canclelBtn.style = 'background-color: #39c';
-            
             launchBtn.disabled = true;
             launchBtn.style = 'background-color: green';
+            downloadBtn.disabled = true;
+            downloadBtn.style = 'background-color: gray';
         }
 
         if (this.source.people == undefined)
@@ -404,19 +435,49 @@ function invitedList(setState)
         this.progressBarInit();
         this.initOutput();
         _txtArea.value = this.source.message;
+        var invited = this.source.people.filter(person => person.isInvited);
+        if(invited != undefined && invited.length > 0)
+        {
+            downloadBtn.disabled = false;
+            downloadBtn.style = 'background-color: #39c';
+        }
+        else
+        {
+            downloadBtn.disabled = true;
+            downloadBtn.style = 'background-color: gray'; 
+        }
 
         if(this.currentView == CurrentViewEnum.invitationView)
         {
+            document.getElementById("txtArea").style.display = 'block';
+            document.getElementById("greetingsPnl").style.display = 'block';
             document.getElementById("txtArea").setAttribute('maxlength', 300);
+            document.getElementById("outputDiv").style.height = "40vh";
             this.calcMessageLetters();
-            document.getElementById("msgLettersCounter").style.visibility = 'visible';
-            document.getElementById("resendMsgDiv").style.visibility = 'hidden';
+            document.getElementById("msgLettersCounter").style.display = 'block';
+            document.getElementById("resendMsgDiv").style.display = 'none';
+            document.getElementById("checkPnl").style.display = 'block';
+            downloadBtn.style.display = 'none';
         }
         else if(this.currentView == CurrentViewEnum.messageView)
         {
+            document.getElementById("outputDiv").style.height = "40vh";
+            document.getElementById("txtArea").style.display = 'block';
+            document.getElementById("greetingsPnl").style.display = 'block';
             document.getElementById("txtArea").removeAttribute('maxLength');
-            document.getElementById("msgLettersCounter").style.visibility = 'hidden';
-            document.getElementById("resendMsgDiv").style.visibility = 'visible';
+            document.getElementById("msgLettersCounter").style.display = 'none';
+            document.getElementById("resendMsgDiv").style.display = 'block';
+            document.getElementById("checkPnl").style.display = 'flex';
+            downloadBtn.style.display = 'none';
+        }
+        else if(this.currentView == CurrentViewEnum.csvView)
+        {
+            document.getElementById("txtArea").style.display = 'none';
+            document.getElementById("msgLettersCounter").style.display = 'none';
+            document.getElementById("greetingsPnl").style.display = 'none';
+            document.getElementById("outputDiv").style.height = "69vh";
+            document.getElementById("checkPnl").style.display = 'none';
+            downloadBtn.style.display = 'block';
         }
 
         _rootDiv.style.display = 'block';
@@ -614,6 +675,23 @@ function invitedList(setState)
             });
     };
 
+    this.saveCurrentCsvList = function ()
+    {
+        return new Promise(resolve =>
+            {
+                var name = this.source.name + '_csv';
+                try
+                {
+                    chrome.storage.local.set({ [name]: this.source });
+                }
+                catch(e)
+                {
+                    console.log(e);
+                }
+                resolve();
+            });
+    };
+
     function SetTextToLinkedinMsgWnd(div, text)
     {
         div.innerHTML = "<p>" + text + "</p>";
@@ -688,8 +766,7 @@ function invitedList(setState)
                 this.setState(CollectStateEnum.none);
                 return;   
             }
-            if(count % 3 == 0)
-                await saveMessagingCount(count);
+            await saveMessagingCount(count);
             var person = notMessagedPeople[i];
             try
             {
@@ -757,7 +834,6 @@ function invitedList(setState)
             this.addOutputInfo(person);
             await this.saveCurrentMessageList();
         }
-        await saveMessagingCount(count);
         this.setState(CollectStateEnum.none);
         alert(notMessagedPeople.filter(person => person.isInvited).length + ' messages have been sent!');
     };
@@ -777,8 +853,7 @@ function invitedList(setState)
                 return;   
             }
 
-            if(count % 3 == 0)
-                await saveInvitationCount(count);
+            await saveInvitationCount(count);
             var person = notInvitetedPeople[i];
             try
             {
@@ -851,7 +926,6 @@ function invitedList(setState)
             this.addOutputInfo(person);
             await this.saveCurrentInvitationList();
         }
-        await saveInvitationCount(count);
         this.setState(CollectStateEnum.none);
         alert(notInvitetedPeople.filter(person => person.isInvited).length + ' invitations have been sent!');
     };

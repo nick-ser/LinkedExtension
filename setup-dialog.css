@@ -14,6 +14,7 @@
 	  2.5em 2.5em;
 	background-repeat: no-repeat;
   }
+
   
 .linkedExtenderSetupDialog
 {
@@ -51,7 +52,8 @@
 .linkedExtenderSetupDialog select
 {
 	color: #fff;
-	border: 1px solid #39c;
+    border: 1px solid #39c;
+    background-color: #666;
 }
 
 .linkedExtenderSetupDialog select:hover,

@@ -22,6 +22,13 @@ function createSetupDialog()
                         <label style="display: inline; vertical-align: middle; color: #fff;" id="securityDescriptionLabel">
                         </label>
                     </div>
+                    <div style="margin-top: 10px; margin-left: 10px;">
+                        <label style="display: inline; vertical-align: middle; color: #fff;">Delimiter type:</label>
+                        <select class="classic" id="delimiterSelect" style="height: 26px; width: 180px; margin-left: 10px;">
+                            <option value=','>, - Google Sheets</option>
+                            <option value=';'>; - Microsoft Excel</option>
+                        </select>
+                    </div>
                     <table style="margin-top: 10px;">
                         <tr style="display:flex;">
                         <td>
@@ -31,6 +38,10 @@ function createSetupDialog()
                             </div>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <label id="messagedLabelCount" style="display: inline; vertical-align: middle; color: #fff;">
+                                </label>
+                            </div>
+                            <div style="margin-top: 10px; margin-left: 10px;">
+                                <label id="csvLabelCount" style="display: inline; vertical-align: middle; color: #fff;">
                                 </label>
                             </div>
                         </td>
@@ -57,6 +68,10 @@ function createSetupDialog()
             });
             document.getElementById("closeSetupDialogBtn").onclick = this.closeSetupDialog;
             document.getElementById("skipCountsBtn").onclick = this.skipCounts;
+            document.getElementById('delimiterSelect').addEventListener('change', (event) =>
+            {
+                this.setDelimiter(event.target.value);;
+            });
 
             var option1 = document.createElement("option");
             option1.text = SecurityLevelEnum.safe;
@@ -81,6 +96,8 @@ function createSetupDialog()
         this.refreshDescription(event.target.value);
     }.bind(this);
 
+
+
     this.refreshDescription = function (level)
     {
         var label = document.getElementById('securityDescriptionLabel');
@@ -98,12 +115,15 @@ function createSetupDialog()
         }
     }.bind(this);
 
-    this.showSetupDialog = async function (securityLevel, setSecurityLevel)
+    this.showSetupDialog = async function (securityLevel, delimiter, setSecurityLevel, setDelimiter)
     {
         this.setSecurityLevel = setSecurityLevel;
+        this.setDelimiter = setDelimiter;
         document.getElementById('securityLevelSelect').value = securityLevel;
+        document.getElementById('delimiterSelect').value = delimiter;
         await loadInvitationCount();
         await loadMessageCount();
+        await loadCsvCount();
         this.refreshDescription(securityLevel);
         this.dialog.style.display = 'block';
     }.bind(this);
@@ -129,6 +149,32 @@ function createSetupDialog()
                         count = tmp.count;
                 }
                 document.getElementById('invitedLabelCount').innerHTML = "Invited in current period: " + count;
+                resolve();
+            })
+        });
+    };
+
+    function loadCsvCount()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('csvCount', function (result)
+            {
+                var count = 0;
+                var tmp = result['csvCount'];
+                if (tmp == undefined)
+                    count = 0;
+                else
+                {
+                    var today = new Date();
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var yyyy = today.getFullYear();
+                    today = mm + '/' + dd + '/' + yyyy;
+                    if(today == tmp.date)
+                        count = tmp.count;
+                }
+                document.getElementById('csvLabelCount').innerHTML = "Profiles parsed in current period: " + count;
                 resolve();
             })
         });
@@ -172,6 +218,7 @@ function createSetupDialog()
 
         document.getElementById('invitedLabelCount').innerHTML = "Invited in current period: 0";
         document.getElementById('messagedLabelCount').innerHTML = "Messaged in current period: 0";
+        document.getElementById('csvLabelCount').innerHTML = "Profiles parsed in current period: 0";
     }.bind(this);
 
     function saveInvitationCount()
