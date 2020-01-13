@@ -17,6 +17,7 @@ function invitedList(setState)
     const SentButtonClass = "ml1 artdeco-button artdeco-button--3 artdeco-button--primary ember-view";
     const MaxInvitationSentCount = 100;
     const MaxMessagingCount = 100;
+    const MaxCsvCount = 100;
     const SendMessageBtnClass = "pv-s-profile-actions pv-s-profile-actions--message ml2 artdeco-button artdeco-button--2 artdeco-button--primary ember-view";
     const CloseSendMsgWindowBtnClass = "msg-overlay-bubble-header__control js-msg-close artdeco-button artdeco-button--circle artdeco-button--inverse artdeco-button--1 artdeco-button--tertiary ember-view";
     const MsgTextAreaClass = "msg-form__contenteditable t-14 t-black--light t-normal flex-grow-1 notranslate";
@@ -138,13 +139,22 @@ function invitedList(setState)
                     '"2","val1","val2","val3","val4"',
                     '"3","val1","val2","val3","val4"'
                   ].join('\n');
+                  */
+                var name = "Max Maximov";
+                var url = "www.yandex.ru";
+                var experience = 'Founder and Owner\n Zen Gold Jan 2007 – Present\n London United Kingdom';
+                var CSV =
+                [
+                    '"Name", "Url", "Experience"'
+                ];
+                CSV.push(name+','+url+','+experience);
                 chrome.runtime.sendMessage({ greeting: 'downloadFile', content: [CSV] }, function (response)
                 {
                     console.log("Request has been sent");
                 });
-                */
-            
-                if(this.source.message == '')
+                
+            /*
+                if(this.currentView != CurrentViewEnum.csvView && this.source.message == '')
                 {
                     alert('You have to set a message.');
                     return;
@@ -159,7 +169,8 @@ function invitedList(setState)
                     this.startInvitationCampaign();
                 else if(this.currentView == CurrentViewEnum.messageView)
                     this.startMessagingCampaign();
-                
+                else if(this.currentView == CurrentViewEnum.csvView)
+                    this.startCsvCampaign();*/
             }.bind(this);
 
             stopBtn.onclick = function()
@@ -168,6 +179,7 @@ function invitedList(setState)
                 stopBtn.style = 'background-color: gray';                
                 launchBtn.disabled = false;
                 launchBtn.style = 'background-color: #39c';
+
                 var invited = this.source.people.filter(person => person.isInvited);
                 if(invited != undefined && invited.length > 0)
                 {
@@ -185,7 +197,16 @@ function invitedList(setState)
 
             downloadBtn.onclick = function()
             {
-
+                var csv = [];
+                csv[0] = '"Name", "Url", "Experience"';
+                var parsedProfiles = this.source.people.filter(person => person.isInvited);
+                for(var i=0; i<parsedProfiles.length; i++)
+                    csv[i+1] = GetPlainEperience(parsedProfiles[i]);
+                
+                chrome.runtime.sendMessage({ greeting: 'downloadFile', content: [csv] }, function (response)
+                {
+                    console.log("Request has been sent");
+                });                
             }.bind(this);
 
             var delButton = document.getElementById("deleteInvitation");
@@ -744,6 +765,118 @@ function invitedList(setState)
     {
         return new Promise(resolve => setTimeout(resolve, ms));
     };
+
+    this.startCsvCampaign = async function()
+    {
+        var notParsedPeople = null;
+        this.source.people.forEach(p => p.isInvited = false);
+        notParsedPeople = this.source.people;
+        //var count = await loadCsvCount();
+        var count = 0;
+        for(let i=0; i<notParsedPeople.length; i++)
+        {
+            if(_isCanceld)
+                break;
+            if(count > MaxCsvCount)
+            {
+                alert('You have reached the limit for parsing profiles.');
+                this.setState(CollectStateEnum.none);
+                return;   
+            }
+            //await saveCsvCount(count);
+            var person = notParsedPeople[i];
+            try
+            {
+                person.isError = false;
+                await sleep(5000);                
+                window.history.pushState(null, null, person.url);
+                await sleep(5000);
+                window.history.back();
+                await sleep(1000);
+                window.history.forward();
+                var delay = Math.round(this.getDelay()) / 3;
+                //await sleep(delay);
+                await sleep(1000);
+                var delta = document.body.scrollHeight / DocumentScrollDelta;
+                var offset = 0.0;
+                for (let j = 0; j < DocumentScrollDelta; j++)
+                {
+                    offset += delta;
+                    window.scrollTo(0, offset);
+                    await sleep(j*1000);
+                }
+                window.scrollTo(0, 0);
+                
+                var section = document.getElementsByClassName('pv-profile-section experience-section ember-view')[0];
+                if(section == undefined)
+                    continue;
+                var divs = section.getElementsByClassName('display-flex justify-space-between full-width');
+                let experinces = [];
+                for(var j=0; j<divs.length; j++)
+                {
+                    var profileDiv = divs[j];
+                    var positonElem = profileDiv.getElementsByClassName('t-16 t-black t-bold')[0];
+                    var position = positonElem != undefined ? positonElem.innerText : '';
+                    var compElem = profileDiv.getElementsByClassName('pv-entity__secondary-title t-14 t-black t-normal')[0];
+                    var companyName = compElem != undefined ? compElem.innerText : '';
+                    var datesElem = profileDiv.getElementsByClassName('pv-entity__date-range t-14 t-black--light t-normal')[0];
+                    var dates = datesElem != undefined ? datesElem.innerText : '';
+                    var locationElem = profileDiv.getElementsByClassName('pv-entity__location t-14 t-black--light t-normal block')[0];
+                    var location = locationElem != undefined ? locationElem.innerText : '';
+                    let experience = 
+                    {
+                        position: position,
+                        companyName: companyName,
+                        dates: dates,
+                        location: location
+                    };
+                    experinces.push(experience);
+                }
+                person.experiences = experinces;
+            }
+            catch(e)
+            {
+                console.log(person.name + ": " + e);
+                person.isError = true;
+            }
+            if(!person.isError)
+            {
+                person.isInvited = true;
+                count++;
+                this.progressBarInit();
+                this.updateRow(person);
+            }
+            this.addOutputInfo(person);
+            //await this.saveCurrentMessageList();
+        }
+        this.setState(CollectStateEnum.none);
+        var invited = this.source.people.filter(person => person.isInvited);
+        var downloadBtn = document.getElementById('dwnldCsv');
+        if(invited != undefined && invited.length > 0)
+        {
+            downloadBtn.disabled = false;
+            downloadBtn.style = 'background-color: #39c';
+        }
+        else
+        {
+            downloadBtn.disabled = true;
+            downloadBtn.style = 'background-color: gray'; 
+        }
+        alert(notParsedPeople.filter(person => person.isInvited).length + ' profiles have been parsed!');
+    }
+
+    function GetPlainEperience(person)
+    {
+
+        var plainText = person.name + ',';
+        plainText += person.url + ',';
+        for(var i=0; i<person.experiences.length; i++)
+        {
+            plainText += person.experiences[i].position + ' ' + person.experiences[i].companyName + ' ' + person.experiences[i].date + ' ' + person.experiences[i].location;            
+            plainText += '\n';
+        }
+        return plainText;
+    }
 
     this.startMessagingCampaign = async function()
     {
