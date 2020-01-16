@@ -42,6 +42,7 @@ function invitedList(setState)
             _rootDiv = document.createElement('div');
             _rootDiv.id = 'parsedPeopleTbl';
             _rootDiv.className = 'parsedPeoplePanel';
+            _rootDiv.style = 'z-index:99999';
             _rootDiv.innerHTML = 
                 `<div class="invatationTabelPanel" style="margin: 15px;">
                     <div style="float: right; margin-right: 20px;">
@@ -133,27 +134,6 @@ function invitedList(setState)
             var downloadBtn = document.getElementById("dwnldCsv");
             launchBtn.onclick = function()
             {
-                /*
-                var CSV = [
-                    '"1","Hello","world","its","me"',
-                    '"2","val1","val2","val3","val4"',
-                    '"3","val1","val2","val3","val4"'
-                  ].join('\n');
-                  */
-                var name = "Max Maximov";
-                var url = "www.yandex.ru";
-                var experience = 'Founder and Owner\n Zen Gold Jan 2007 – Present\n London United Kingdom';
-                var CSV =
-                [
-                    '"Name", "Url", "Experience"'
-                ];
-                CSV.push(name+','+url+','+experience);
-                chrome.runtime.sendMessage({ greeting: 'downloadFile', content: [CSV] }, function (response)
-                {
-                    console.log("Request has been sent");
-                });
-                
-            /*
                 if(this.currentView != CurrentViewEnum.csvView && this.source.message == '')
                 {
                     alert('You have to set a message.');
@@ -165,12 +145,14 @@ function invitedList(setState)
                 stopBtn.style = 'background-color: #39c';                
                 launchBtn.disabled = true;
                 launchBtn.style = 'background-color: green';
+                downloadBtn.disabled = true;
+                downloadBtn.style = 'background-color: gray'; 
                 if(this.currentView == CurrentViewEnum.invitationView)
                     this.startInvitationCampaign();
                 else if(this.currentView == CurrentViewEnum.messageView)
                     this.startMessagingCampaign();
                 else if(this.currentView == CurrentViewEnum.csvView)
-                    this.startCsvCampaign();*/
+                    this.startCsvCampaign();
             }.bind(this);
 
             stopBtn.onclick = function()
@@ -198,10 +180,12 @@ function invitedList(setState)
             downloadBtn.onclick = function()
             {
                 var csv = [];
-                csv[0] = '"Name", "Url", "Experience"';
+                csv[0] = 'Name' + this.delimiter + 'Url' + this.delimiter + 'Postion' + this.delimiter + 'Company name'
+                    + this.delimiter + 'Websites' + this.delimiter + 'Phone' + this.delimiter + 'Address'
+                    + this.delimiter + 'Email' + this.delimiter + 'IM' + this.delimiter + 'Twitter' + this.delimiter + 'Birthday';
                 var parsedProfiles = this.source.people.filter(person => person.isInvited);
                 for(var i=0; i<parsedProfiles.length; i++)
-                    csv[i+1] = GetPlainEperience(parsedProfiles[i]);
+                    csv.push(this.GetPlainPersonInfo(parsedProfiles[i]));
                 
                 chrome.runtime.sendMessage({ greeting: 'downloadFile', content: [csv] }, function (response)
                 {
@@ -425,12 +409,29 @@ function invitedList(setState)
         }
     }.bind(this);
 
-    this.showInvitedList = function (state, source, securityLevel, currentView)
+    loadDelimiterCount = function ()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('linkedExtenderDelimiter', function (result)
+            {
+                var delimiter = ',';
+                if(result['linkedExtenderDelimiter'] == undefined)
+                    delimiter = ',';
+                else
+                    delimiter = result['linkedExtenderDelimiter'];
+                resolve(delimiter);
+            })
+        });
+    };
+
+    this.showInvitedList = async function (state, source, securityLevel, currentView)
     {
         this.source = source;
         this.filteredSource = source.people;
         this.securityLevel = securityLevel;
         this.currentView = currentView;
+        this.delimiter = await loadDelimiterCount();
 
         var canclelBtn = document.getElementById('stopInvitation');
         var launchBtn = document.getElementById('launchInvitation');
@@ -679,11 +680,11 @@ function invitedList(setState)
             });
     };
 
-    this.saveCurrentMessageList = function ()
+    this.saveCurrentCsvList = function ()
     {
         return new Promise(resolve =>
             {
-                var name = this.source.name + '_message';
+                var name = this.source.name + '_csv';
                 try
                 {
                     chrome.storage.local.set({ [name]: this.source });
@@ -696,11 +697,11 @@ function invitedList(setState)
             });
     };
 
-    this.saveCurrentCsvList = function ()
+    this.saveCurrentMessageList = function ()
     {
         return new Promise(resolve =>
             {
-                var name = this.source.name + '_csv';
+                var name = this.source.name + '_message';
                 try
                 {
                     chrome.storage.local.set({ [name]: this.source });
@@ -766,13 +767,54 @@ function invitedList(setState)
         return new Promise(resolve => setTimeout(resolve, ms));
     };
 
+    function loadCsvCount()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('csvCount', function (result)
+            {
+                var count = 0;
+                var tmp = result['csvCount'];
+                if (tmp == undefined)
+                    count = 0;
+                else
+                {
+                    var today = new Date();
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var yyyy = today.getFullYear();
+                    today = mm + '/' + dd + '/' + yyyy;
+                    if(today == tmp.date)
+                        count = tmp.count;
+                }
+                resolve(count);
+            })
+        });
+    };
+
+    function saveCsvCount(count)
+    {
+        return new Promise(resolve =>
+        {
+            var today = new Date();
+            var dd = String(today.getDate()).padStart(2, '0');
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
+            var yyyy = today.getFullYear();
+            today = mm + '/' + dd + '/' + yyyy;
+            let tmp = 
+            {
+                date: today,
+                count: count
+            };
+            chrome.storage.local.set({ 'csvCount': tmp });
+            resolve();
+        });
+    };
+
     this.startCsvCampaign = async function()
     {
-        var notParsedPeople = null;
-        this.source.people.forEach(p => p.isInvited = false);
-        notParsedPeople = this.source.people;
-        //var count = await loadCsvCount();
-        var count = 0;
+        var notParsedPeople = this.source.people.filter(person => !person.isInvited);
+        var count = await loadCsvCount();
         for(let i=0; i<notParsedPeople.length; i++)
         {
             if(_isCanceld)
@@ -783,7 +825,7 @@ function invitedList(setState)
                 this.setState(CollectStateEnum.none);
                 return;   
             }
-            //await saveCsvCount(count);
+            await saveCsvCount(count);
             var person = notParsedPeople[i];
             try
             {
@@ -794,9 +836,9 @@ function invitedList(setState)
                 window.history.back();
                 await sleep(1000);
                 window.history.forward();
-                var delay = Math.round(this.getDelay()) / 3;
-                //await sleep(delay);
-                await sleep(1000);
+                var delay = Math.round(this.getDelay()) / 2;
+                await sleep(delay);
+                
                 var delta = document.body.scrollHeight / DocumentScrollDelta;
                 var offset = 0.0;
                 for (let j = 0; j < DocumentScrollDelta; j++)
@@ -807,32 +849,171 @@ function invitedList(setState)
                 }
                 window.scrollTo(0, 0);
                 
-                var section = document.getElementsByClassName('pv-profile-section experience-section ember-view')[0];
-                if(section == undefined)
-                    continue;
-                var divs = section.getElementsByClassName('display-flex justify-space-between full-width');
-                let experinces = [];
-                for(var j=0; j<divs.length; j++)
+                var experienceSection = document.getElementsByClassName('pv-profile-section experience-section ember-view')[0];
+                if(experienceSection != undefined)
                 {
-                    var profileDiv = divs[j];
-                    var positonElem = profileDiv.getElementsByClassName('t-16 t-black t-bold')[0];
-                    var position = positonElem != undefined ? positonElem.innerText : '';
-                    var compElem = profileDiv.getElementsByClassName('pv-entity__secondary-title t-14 t-black t-normal')[0];
-                    var companyName = compElem != undefined ? compElem.innerText : '';
-                    var datesElem = profileDiv.getElementsByClassName('pv-entity__date-range t-14 t-black--light t-normal')[0];
-                    var dates = datesElem != undefined ? datesElem.innerText : '';
-                    var locationElem = profileDiv.getElementsByClassName('pv-entity__location t-14 t-black--light t-normal block')[0];
-                    var location = locationElem != undefined ? locationElem.innerText : '';
-                    let experience = 
+                    var currentJobDiv = experienceSection.getElementsByClassName('pv-entity__summary-info pv-entity__summary-info--background-section')[0];
+                    if(currentJobDiv != undefined)
                     {
-                        position: position,
-                        companyName: companyName,
-                        dates: dates,
-                        location: location
-                    };
-                    experinces.push(experience);
+                        var positonElem = currentJobDiv.getElementsByClassName('t-16 t-black t-bold')[0];
+                        person.position = positonElem != undefined ? positonElem.innerText : '';
+                        var compElem = currentJobDiv.getElementsByClassName('pv-entity__secondary-title t-14 t-black t-normal')[0];
+                        person.companyName = compElem != undefined ? compElem.innerText : '';
+                    }
                 }
-                person.experiences = experinces;
+                
+                await sleep(2000);                
+                window.history.pushState(null, null, person.url + 'detail/contact-info/');
+                await sleep(2000);
+                window.history.back();
+                await sleep(1000);
+                window.history.forward();
+                await sleep(delay);
+                if(_isCanceld)
+                    break;
+                //websites
+                var websitesSection = document.getElementsByClassName('pv-contact-info__contact-type ci-websites')[0];
+                if(websitesSection != undefined)
+                {
+                    var websitesElems = websitesSection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(websitesElems != undefined)
+                    {
+                        if(websitesElems.length > 1)
+                        {
+                           var websites = ''; 
+                            for(let j=0; j<websitesElems.length; j++)
+                            {
+                                websites += websitesElems[j].innerText;
+                                if(j<websitesElems.length-1)
+                                    websites += ' | ';
+                            }
+                            person.websites = websites;
+                        }
+                        else if(websitesElems.length == 1)
+                            person.websites = websitesElems[0].innerText;
+                    }
+                }
+                //phones
+                var phonesSection = document.getElementsByClassName('pv-contact-info__contact-type ci-phone')[0];
+                if(phonesSection != undefined)
+                {
+                    var phonesElems = phonesSection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(phonesElems != undefined)
+                    {
+                        if(phonesElems.length > 1)
+                        {
+                           var phones = ''; 
+                            for(let j=0; j<phonesElems.length; j++)
+                            {
+                                phones += phonesElems[j].innerText ;
+                                if(j<phonesElems.length-1)
+                                    phones += ' | ';
+                            }
+                            person.phones = phones;
+                        }
+                        else if(phonesElems.length == 1)
+                            person.phones = phonesElems[0].innerText;
+                    }
+                }
+                //addresses
+                var addressesSection = document.getElementsByClassName('pv-contact-info__contact-type ci-address')[0];
+                if(addressesSection != undefined)
+                {
+                    var addressesElems = addressesSection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(addressesElems != undefined)
+                    {
+                        if(addressesElems.length > 1)
+                        {
+                           var addresses = ''; 
+                            for(let j=0; j<addressesElems.length; j++)
+                            {
+                                addresses += addressesElems[j].innerText;
+                                if(j<addressesElems.length-1)
+                                    addresses += ' | ';
+                            }
+                            person.addresses = addresses;
+                        }
+                        else if(addressesElems.length == 1)
+                            person.addresses = addressesElems[0].innerText;
+                    }
+                }
+                //emails
+                var emailsSection = document.getElementsByClassName('pv-contact-info__contact-type ci-email')[0];
+                if(emailsSection != undefined)
+                {
+                    var emailsElems = emailsSection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(emailsElems != undefined)
+                    {
+                        if(emailsElems.length > 1)
+                        {
+                           var emails = ''; 
+                            for(let j=0; j<emailsElems.length; j++)
+                            {
+                                emails += emailsElems[j].innerText;
+                                if(j<emailsElems.length-1)
+                                    emails += ' | ';
+                            }
+                            person.emails = emails;
+                        }
+                        else if(emailsElems.length == 1)
+                            person.emails = emailsElems[0].innerText;
+                    }
+                }
+                //messengers
+                var imsSection = document.getElementsByClassName('pv-contact-info__contact-type ci-ims')[0];
+                if(imsSection != undefined)
+                {
+                    var imsElems = imsSection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(imsElems != undefined)
+                    {
+                        if(imsElems.length > 1)
+                        {
+                           var ims = ''; 
+                            for(let j=0; j<imsElems.length; j++)
+                            {
+                                ims += imsElems[j].innerText + ' | ';
+                                if(j<imsElems.length-1)
+                                    ims += ' | ';
+                            }
+                            person.ims = ims;
+                        }
+                        else if(imsElems.length == 1)
+                            person.ims = imsElems[0].innerText;
+                    }
+                }
+                //twitter
+                var twitterSection = document.getElementsByClassName('pv-contact-info__contact-type ci-twitter')[0];
+                if(twitterSection != undefined)
+                {
+                    var twitterElems = twitterSection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(twitterElems != undefined)
+                    {
+                        if(twitterElems.length > 1)
+                        {
+                           var twitter = ''; 
+                            for(let j=0; j<twitterElems.length; j++)
+                            {
+                                twitter += twitterElems[j].innerText;
+                                if(j<twitterElems.length-1)
+                                    twitter += ' | ';
+                            }
+                            person.twitter = twitter;
+                        }
+                        else if(twitterElems.length == 1)
+                            person.twitter = twitterElems[0].innerText;
+                    }
+                }
+                //birthday
+                var birthdaySection = document.getElementsByClassName('pv-contact-info__contact-type ci-birthday')[0];
+                if(birthdaySection != undefined)
+                {
+                    var birthdayElems = birthdaySection.getElementsByClassName('pv-contact-info__ci-container');
+                    if(birthdayElems != undefined)
+                    {
+                        if(birthdayElems.length > 0)
+                            person.birthday = birthdayElems[0].innerText;
+                    }
+                }
             }
             catch(e)
             {
@@ -847,8 +1028,9 @@ function invitedList(setState)
                 this.updateRow(person);
             }
             this.addOutputInfo(person);
-            //await this.saveCurrentMessageList();
+            await this.saveCurrentCsvList();
         }
+        await saveCsvCount(count);
         this.setState(CollectStateEnum.none);
         var invited = this.source.people.filter(person => person.isInvited);
         var downloadBtn = document.getElementById('dwnldCsv');
@@ -862,21 +1044,28 @@ function invitedList(setState)
             downloadBtn.disabled = true;
             downloadBtn.style = 'background-color: gray'; 
         }
+        document.getElementById('stopInvitation').disabled = true;
+        document.getElementById('stopInvitation').style = 'background-color: gray';                
+        document.getElementById('launchInvitation').disabled = false;
+        document.getElementById('launchInvitation').style = 'background-color: #39c';
         alert(notParsedPeople.filter(person => person.isInvited).length + ' profiles have been parsed!');
     }
 
-    function GetPlainEperience(person)
+    this.GetPlainPersonInfo = function (person)
     {
+        return '\n' + isNullOrHaveDelimiter(person.name) + this.delimiter + isNullOrHaveDelimiter(person.url)
+            + this.delimiter + isNullOrHaveDelimiter(person.position)  + this.delimiter + isNullOrHaveDelimiter(person.companyName)
+            + this.delimiter + isNullOrHaveDelimiter(person.websites) + this.delimiter + isNullOrHaveDelimiter(person.phones)
+            + this.delimiter + isNullOrHaveDelimiter(person.addresses) + this.delimiter + isNullOrHaveDelimiter(person.emails)
+            + this.delimiter + isNullOrHaveDelimiter(person.ims) + this.delimiter + isNullOrHaveDelimiter(person.twitter)
+            + this.delimiter + isNullOrHaveDelimiter(person.birthday);
+    }.bind(this);
 
-        var plainText = person.name + ',';
-        plainText += person.url + ',';
-        for(var i=0; i<person.experiences.length; i++)
-        {
-            plainText += person.experiences[i].position + ' ' + person.experiences[i].companyName + ' ' + person.experiences[i].date + ' ' + person.experiences[i].location;            
-            plainText += '\n';
-        }
-        return plainText;
-    }
+    isNullOrHaveDelimiter = function (str)
+    {
+        str = str == undefined ? '' : str;
+        return str.replace(this.delimiter, '');
+    }.bind(this);
 
     this.startMessagingCampaign = async function()
     {
@@ -967,7 +1156,12 @@ function invitedList(setState)
             this.addOutputInfo(person);
             await this.saveCurrentMessageList();
         }
+        await saveMessagingCount(count);
         this.setState(CollectStateEnum.none);
+        document.getElementById('stopInvitation').disabled = true;
+        document.getElementById('stopInvitation').style = 'background-color: gray';                
+        document.getElementById('launchInvitation').disabled = false;
+        document.getElementById('launchInvitation').style = 'background-color: #39c';
         alert(notMessagedPeople.filter(person => person.isInvited).length + ' messages have been sent!');
     };
 
@@ -1060,6 +1254,10 @@ function invitedList(setState)
             await this.saveCurrentInvitationList();
         }
         this.setState(CollectStateEnum.none);
+        document.getElementById('stopInvitation').disabled = true;
+        document.getElementById('stopInvitation').style = 'background-color: gray';                
+        document.getElementById('launchInvitation').disabled = false;
+        document.getElementById('launchInvitation').style = 'background-color: #39c';
         alert(notInvitetedPeople.filter(person => person.isInvited).length + ' invitations have been sent!');
     };
 

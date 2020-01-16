@@ -1013,33 +1013,6 @@ function DialogBox(id, callback)
 			dialogButtonStyle = getComputedStyle(_buttons[1]);
         }
                 
-		// Calculate minimal width
-		_minW = Math.max(_dialog.clientWidth, _minW, 
-			+ (_buttons.length > 1 ? 
-				+ (_buttons.length - 1) * parseInt(dialogButtonStyle.width) // .dialog .buttonset button { width: 64px; }
-				+ (_buttons.length - 1 - 1) * 16 // .dialog .buttonset button { margin-left: 16px; } // but not for first-child
-				+ (_buttons.length - 1 - 1) * 16 / 2 // The formula is not correct, however, with fixed value 16 for margin-left: 16px it works
-				: 0 )
-			);
-		_dialog.style.width = _minW + 'px';
-		
-		// Calculate minimal height
-		_minH = Math.max(_dialog.clientHeight, _minH, 
-			+ parseInt(dialogContentStyle.top) // .dialog .content { top: 48px } 
-			+ (2 * parseInt(dialogStyle.border)) // .dialog { border: 1px }
-			+ 16 // ?
-			+ 12 // .p { margin-block-start: 1em; } // default
-			+ 12 // .dialog { font-size: 12px; } // 1em = 12px
-			+ 12 // .p { margin-block-end: 1em; } // default
-			+(_buttons.length > 1 ?
-				+ parseInt(dialogButtonPaneStyleBefore.borderBottom) // .dialog .buttonpane:before { border-bottom: 1px; }
-				- parseInt(dialogButtonPaneStyleBefore.top) // .dialog .buttonpane:before { height: 0; top: -16px; }
-				+ parseInt(dialogButtonPaneStyle.height) // .dialog .buttonset button { height: 32px; }
-				+ parseInt(dialogButtonPaneStyle.bottom) // .dialog .buttonpane { bottom: 16px; }
-				: 0 )
-			);
-		_dialog.style.height = _minH + 'px';
-
 		setDialogContent();		
 		
 		_dialog.style.display = 'none'; // Let's hide it again..

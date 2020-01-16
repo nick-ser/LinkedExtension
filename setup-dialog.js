@@ -215,6 +215,7 @@ function createSetupDialog()
     {
         saveInvitationCount();
         saveMessageCount();
+        saveCsvCount();
 
         document.getElementById('invitedLabelCount').innerHTML = "Invited in current period: 0";
         document.getElementById('messagedLabelCount').innerHTML = "Messaged in current period: 0";
@@ -257,6 +258,25 @@ function createSetupDialog()
             chrome.storage.local.set({ 'messagingCount': tmp });
             resolve();
         });
+    };
+
+    function saveCsvCount()
+    {
+        return new Promise(resolve =>
+            {
+                var today = new Date();
+                var dd = String(today.getDate()).padStart(2, '0');
+                var mm = String(today.getMonth() + 1).padStart(2, '0');
+                var yyyy = today.getFullYear();
+                today = mm + '/' + dd + '/' + yyyy;
+                let tmp = 
+                {
+                    date: today,
+                    count: 0
+                };
+                chrome.storage.local.set({ 'csvCount': tmp });
+                resolve();
+            });
     };
 
     this.init();
