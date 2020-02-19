@@ -39,11 +39,12 @@
     z-index: 1;
 }
 .dialog .titlebar {
-    height: 32px; /* same as .dialog>button height */
+	height: 32px; /* same as .dialog>button height */
+	width: 294px;
     line-height: 32px; /* same as .dialog>button height */
     vertical-align: middle;
     font-size: 1.2em;
-    padding: 0 8px 0 8px; /* change NOT allowed */
+    padding-left: 8px; /* change NOT allowed */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

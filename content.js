@@ -1,17 +1,30 @@
 chrome.runtime.onMessage.addListener(request =>
 {
+    buildDialog(request.type);
+});
+
+async function buildDialog(type)
+{
     var dialog = document.getElementById("customDialog");
-    if (request.type === 'linkedOpened' && dialog == null)
-    {        
+    if (type === 'linkedOpened' && dialog == null)
+    {
+        var credentials = await loadCredentials();
+        let needSignin = false;
+        if(credentials == null)
+            needSignin = true;
+
         prevHeight = window.innerHeight;
         prevWidth = window.innerWidth;
-        var div = document.createElement('div')
-        div.setAttribute("style", "width:304px; height:195px;");
-        div.setAttribute("role", "main");
-        div.className = 'dialog';        
-        div.id = 'customDialog';
+        var rootDiv = document.createElement('div')
+        rootDiv.setAttribute("style", "width:304px; height:195px;");
+        rootDiv.setAttribute("role", "main");
+        rootDiv.className = 'dialog';        
+        rootDiv.id = 'customDialog';
        
-        div.innerHTML = `<div class="titlebar">LinkedExtender
+        rootDiv.innerHTML = `<div class="titlebar">LinkedExtender
+                    <button style="visibility:hidden; margin-right: 66px; color: Red; cursor: pointer; font-size: 1.2em;" id="linkedExtenderUpdate" title="There is an update. Click to download">
+                        !
+                    </button>
                     <button style="margin-right: 33px;" id="linkedExtenderShowSetup">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Windows_Settings_app_icon.png" 
                             style="margin-bottom:3px; width: 15px; height: 15px;vertical-align: middle;"></img>
@@ -20,7 +33,24 @@ chrome.runtime.onMessage.addListener(request =>
                         <img src="https://www.pngrepo.com/png/202039/170/minimize.png" style="margin-bottom:3px; width: 15px; height: 15px;vertical-align: middle;"></img>
                     </button>
                 </div>
-                <div class="customRootPanel">
+                <div class="signinRootPanel" style="visibility:hidden;">
+                    <div style="margin-top: 10px;">
+                        <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> Login: </label>
+                        <input id="loginInput" style="height: 26px; width: 180px; margin-left: 51px;"></input>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> Password: </label>
+                        <input id="passwordInput" type="password" style="height: 26px; width: 180px; margin-left: 23px;"></input>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label id='wrongPwdLabel' style="font-size: 1em; display: inline; vertical-align: middle; visibility: hidden; margin-left: 10px; color: red;">
+                        Wrong login/password or your license expired. </label>
+                    </div>
+                    <div style="margin-top: 15px; margin-left: 190px;">
+                        <button class="tablink" name="signin">Sign In</button>
+                    </div>
+                </div>
+                <div class="customRootPanel"  style="visibility:visible;">
                     <div style="margin-top: 1px; height: 32px;">
                         <button id="invitationsBtn" style="margin-right: 1px;" class="tablink">Invitations</button>
                         <button id="msgBtn" class="tablink" style="margin-right: 1px;">Messages</button>
@@ -35,7 +65,7 @@ chrome.runtime.onMessage.addListener(request =>
                             <div style="margin-top: 10px;">
                                 <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> How many profiles to invite: </label>
                                 <input id="invitationNumber" style="height: 26px; width: 52px; margin-left: 23px;"></input>
-                                </div>
+                            </div>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <button id="collectBtn" name="collect">Collect</button>
                                 <button id="cancelCollectBtn" name="cancel">Cancel</button>
@@ -73,16 +103,31 @@ chrome.runtime.onMessage.addListener(request =>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="buttonpane">
                 </div>`;
-        document.body.appendChild(div);
+        document.body.appendChild(rootDiv);
+        let rootPanel = document.getElementsByClassName('customRootPanel')[0];
+        let signinPanel = document.getElementsByClassName('signinRootPanel')[0];
+        if(needSignin)
+        {
+            rootPanel.style = 'visibility:hidden;'
+            signinPanel.style = 'visibility:visible;'
+        }
         
-        dialog = new DialogBox('customDialog', callbackDialog);
+        dialog = new DialogBox('customDialog', needSignin);
         dialog.showDialog();
     }
-});
+};
 
-function callbackDialog(btnName)
+function loadCredentials()
 {
-}
+    return new Promise(resolve => 
+    {
+        chrome.storage.local.get('credentials', function (result)
+        {
+            var credentials = result['credentials'];
+            if (credentials == undefined)
+                resolve(null);
+            resolve(credentials);
+        })
+    });
+};

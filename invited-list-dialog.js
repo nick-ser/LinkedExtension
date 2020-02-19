@@ -235,17 +235,17 @@ function invitedList(setState)
                 this.showInvitedOnly();
             }.bind(this), false);
 
-            _filterByName.addEventListener("change", function ()
+            _filterByName.addEventListener("input", function ()
             {
                 this.doFiltration(FiltrationEnum.byName, _filterByName.value);
             }.bind(this), false);
 
-            _filterByPos.addEventListener("change", function ()
+            _filterByPos.addEventListener("input", function ()
             {
                 this.doFiltration(FiltrationEnum.byPosition, _filterByPos.value);
             }.bind(this), false);
 
-            _filterByLocation.addEventListener("change", function ()
+            _filterByLocation.addEventListener("input", function ()
             {
                 this.doFiltration(FiltrationEnum.byLocation, _filterByLocation.value);
             }.bind(this), false);
@@ -384,12 +384,14 @@ function invitedList(setState)
         if (filter == "")
             this.filteredSource = this.source.people;         
         else if (flag == FiltrationEnum.byName)
-            this.filteredSource = this.source.people.filter(person => person.firstName.toLowerCase().indexOf(filter) != -1
-                || person.lastName.toLowerCase().indexOf(filter) != -1);
+        {
+            this.filteredSource = this.source.people.filter(person => person.name.toLowerCase().indexOf(filter.toLowerCase()) != -1);
+                //|| person.lastName.toLowerCase().indexOf(filter) != -1);
+        }
         else if (flag == FiltrationEnum.byPosition)
-            this.filteredSource = this.source.people.filter(person => person.position.toLowerCase().indexOf(filter) != -1);
+            this.filteredSource = this.source.people.filter(person => person.position.toLowerCase().indexOf(filter.toLowerCase) != -1);
         else if (flag == FiltrationEnum.byLocation)
-            this.filteredSource = this.source.people.filter(person => person.location.toLowerCase().indexOf(filter) != -1);
+            this.filteredSource = this.source.people.filter(person => person.location.toLowerCase().indexOf(filter.toLowerCase) != -1);
         this.updateTable();
     };
 
@@ -404,7 +406,7 @@ function invitedList(setState)
                 return Math.random() * (240000 - 120000) + 120000;
             break;
             case SecurityLevelEnum.low:
-                return Math.random() * (180000 - 60000) + 60000;
+                return Math.random() * (20000 - 10000) + 10000;
             break;
         }
     }.bind(this);
@@ -1209,34 +1211,58 @@ function invitedList(setState)
                     await sleep(j*1000);
                 }
                 window.scrollTo(0, 0);
-                
-                var inviteBtn = document.getElementsByClassName(InviteBtnClass)[0];
-                if(inviteBtn == undefined)
+
+                if(!person.isSalesNavigator)
                 {
-                    inviteBtn = document.getElementsByClassName(InviteBtnClass2)[0];
+                    var inviteBtn = document.getElementsByClassName(InviteBtnClass)[0];
+                    if(inviteBtn == undefined)
+                    {
+                        inviteBtn = document.getElementsByClassName(InviteBtnClass2)[0];
+                        if(inviteBtn == undefined)
+                            throw("Invite button hasn't been found.");
+                    }
+                    if(inviteBtn.disabled)
+                        throw("Invite button is disabled.")
+                    inviteBtn.click();
+                    await sleep(1000);
+                    var addNoteBtn = document.getElementsByClassName(AddNoteBtnClass)[0];
+                    if(addNoteBtn == undefined)
+                        throw("Add Note button hasn't been found.");
+                    addNoteBtn.click();
+                    await sleep(1000);
+                    var textArea = document.getElementsByClassName(TextAreaClass)[0];
+                    if(textArea == undefined)
+                        throw("Text area hasn't been found.");
+                    setTextToLinkedinInput(textArea, msg); 
+                    await sleep(1000);
+                    var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
+                    if(sentBtn == undefined)
+                        throw("Sent button hasn't been found.");
+                    if(sentBtn.disabled)
+                        throw("Sent button is disabled.")
+                    sentBtn.click();
+                }
+                else
+                {
+                    var inviteBtn = document.getElementsByClassName('inverse-link-on-a-light-background artdeco-dropdown__item artdeco-dropdown__item--is-dropdown ember-view')[0];
                     if(inviteBtn == undefined)
                         throw("Invite button hasn't been found.");
+                    if(inviteBtn.disabled)
+                        throw("Invite button is disabled.")
+                    inviteBtn.click();
+                    await sleep(1000);
+                    var textArea = document.getElementsByClassName('ember-text-area ember-view')[0];
+                    if(textArea == undefined)
+                        throw("Text area hasn't been found.");
+                    setTextToLinkedinInput(textArea, msg);
+                    await sleep(1000);
+                    var sentBtn = document.getElementsByClassName('button-primary-medium connect-cta-form__send')[0];
+                    if(sentBtn == undefined)
+                        throw("Sent button hasn't been found.");
+                    if(sentBtn.disabled)
+                        throw("Sent button is disabled.")
+                    sentBtn.click();
                 }
-                if(inviteBtn.disabled)
-                    throw("Invite button is disabled.")
-                inviteBtn.click();
-
-                var addNoteBtn = document.getElementsByClassName(AddNoteBtnClass)[0];
-                if(addNoteBtn == undefined)
-                    throw("Add Note button hasn't been found.");
-                addNoteBtn.click();
-
-                var textArea = document.getElementsByClassName(TextAreaClass)[0];
-                if(textArea == undefined)
-                    throw("Text area hasn't been found.");
-                setTextToLinkedinInput(textArea, msg); 
-                
-                var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
-                if(sentBtn == undefined)
-                    throw("Sent button hasn't been found.");
-                if(sentBtn.disabled)
-                    throw("Sent button is disabled.")
-                sentBtn.click();
             }
             catch(e)
             {   

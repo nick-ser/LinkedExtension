@@ -10,9 +10,14 @@ function invitationDialog()
             _dialog.style.zIndex = 1;
             _dialog.className = 'modalInvitationDlg';
             _dialog.innerHTML = `<div class="modal-content">
-                        <p align="center">From which page do you want to collect</p>
+                        <p align="center" style="color: #fff;">From which page do you want to collect</p>
                         <div class="buttons" style="margin-top: 10px;">
-                          <button class="generalPageBtn" name="collect">General Search Page</button>
+                            <div>
+                                <button style="padding: 0px 15px;" class="generalPageBtn" name="collect">LinkedIn General Search Page</button>
+                            </div>
+                            <div>
+                                <button style="padding: 0px 15px; margin-top: 15px;" class="salesNavPageBtn" name="collect">Sales Navigator Search Page</button>
+                            </div>
                         </div>
                         <div class="cancelpane">
                           <button class="close-btn" name="cancel">Cancel</button>
@@ -22,10 +27,9 @@ function invitationDialog()
         }        
         _dialog.style.display = "none";
 
-        var generalPageBtn = document.querySelector(".generalPageBtn");
-        generalPageBtn.onclick = browseUrl;
-        var closeBtn = document.querySelector(".close-btn");
-        closeBtn.onclick = closeDialog;
+        document.querySelector(".generalPageBtn").onclick = browseUrl;
+        document.querySelector('.salesNavPageBtn').onclick = browseToSaleNav;
+        document.querySelector(".close-btn").onclick = closeDialog;
     };
 
     showInvitationDialog = function ()
@@ -40,9 +44,13 @@ function invitationDialog()
 
     function browseUrl()
     {
-        window.history.pushState(null, null, 'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22S%22%5D&origin=FACETED_SEARCH/');
-        setTimeout(() => window.history.back(), 50);
-        setTimeout(() => window.history.forward(), 70);
+        chrome.runtime.sendMessage({ greeting: 'goToUrl', url: 'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22S%22%5D&origin=FACETED_SEARCH/' }, null);  
+        closeDialog();
+    };
+
+    function browseToSaleNav()
+    {
+        chrome.runtime.sendMessage({ greeting: 'goToUrl', url: 'https://www.linkedin.com/sales/search/people' }, null);  
         closeDialog();
     };
 

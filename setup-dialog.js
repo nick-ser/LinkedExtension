@@ -1,4 +1,4 @@
-function createSetupDialog()
+function createSetupDialog(signout)
 {
     const SecurityLevelEnum = Object.freeze({ "safe": "Safe", "medium": "Medium", "low": "Low" });
     this.init = function()
@@ -44,17 +44,25 @@ function createSetupDialog()
                                 <label id="csvLabelCount" style="display: inline; vertical-align: middle; color: #fff;">
                                 </label>
                             </div>
+                            <div style="margin-top: 10px; margin-left: 10px;">
+                                <label id="expireDateLabel" style="display: inline; vertical-align: middle; color: #fff;">
+                                </label>
+                            </div>
                         </td>
+                        <!--
                         <td style="display:flex; flex-grow:1; align-items:center; justify-content:center;">
                             <button id="skipCountsBtn" style="width: 90px; height: 32px; margin-top: 6px; margin-left: 20px; display:flex; align-items:center; justify-content:center;">
                                 Skip
                             </button>
-                        </td>
+                        </td>-->
                         </tr>
                     </table>
                     <div style="margin-top: 10px; margin-left: 10px;">
                         <button id="closeSetupDialogBtn" style="width: 90px; height: 32px; float: right; margin-right: -5px; margin-bottom:-5px;">
                             Close
+                        </button>
+                        <button id="signoutSetupDialogBtn" style="width: 90px; height: 32px; float: right; margin-right: 5px; margin-bottom:-5px;">
+                            Sign Out
                         </button>
                     </div> 
                 </div>
@@ -67,7 +75,12 @@ function createSetupDialog()
                 this.securityLevelChange(event);
             });
             document.getElementById("closeSetupDialogBtn").onclick = this.closeSetupDialog;
-            document.getElementById("skipCountsBtn").onclick = this.skipCounts;
+            document.getElementById("signoutSetupDialogBtn").onclick = function()
+            {
+                signout(false);
+                this.closeSetupDialog();
+            }.bind(this);
+            //document.getElementById("skipCountsBtn").onclick = this.skipCounts;
             document.getElementById('delimiterSelect').addEventListener('change', (event) =>
             {
                 this.setDelimiter(event.target.value);;
@@ -124,6 +137,17 @@ function createSetupDialog()
         await loadInvitationCount();
         await loadMessageCount();
         await loadCsvCount();
+        var info = await loadAccountInfo();
+        if(info == null)
+        {
+            document.getElementById('signoutSetupDialogBtn').disabled = true;
+            document.getElementById('expireDateLabel').innerText = "";
+        }
+        else
+        {
+            document.getElementById('signoutSetupDialogBtn').disabled = false;
+            document.getElementById('expireDateLabel').innerText = "Expiry date: " + info.days + " days.";
+        }
         this.refreshDescription(securityLevel);
         this.dialog.style.display = 'block';
     }.bind(this);
@@ -279,5 +303,19 @@ function createSetupDialog()
             });
     };
 
-    this.init();
+    function loadAccountInfo()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('accountInfo', function (result)
+            {
+                var tmp = result['accountInfo'];
+                if (tmp == undefined)
+                    info = null;
+                resolve(tmp);
+            })
+        });
+    };
+
+    this.init(signout);
 }

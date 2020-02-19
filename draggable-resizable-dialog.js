@@ -1,5 +1,214 @@
-function DialogBox(id, callback)
+function DialogBox(id, needSignin)
 {
+
+    var MD5 = function (string)
+    {
+        function RotateLeft(lValue, iShiftBits)
+        {
+            return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
+        }
+    
+        function AddUnsigned(lX,lY) 
+        {
+            var lX4,lY4,lX8,lY8,lResult;
+            lX8 = (lX & 0x80000000);
+            lY8 = (lY & 0x80000000);
+            lX4 = (lX & 0x40000000);
+            lY4 = (lY & 0x40000000);
+            lResult = (lX & 0x3FFFFFFF)+(lY & 0x3FFFFFFF);
+            if (lX4 & lY4) 
+            {
+                return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
+            }
+            if (lX4 | lY4)
+            {
+                if (lResult & 0x40000000)
+                {
+                    return (lResult ^ 0xC0000000 ^ lX8 ^ lY8);
+                } else 
+                {
+                    return (lResult ^ 0x40000000 ^ lX8 ^ lY8);
+                }
+            } else
+            {
+                return (lResult ^ lX8 ^ lY8);
+            }
+        }
+    
+        function F(x,y,z) { return (x & y) | ((~x) & z); }
+        function G(x,y,z) { return (x & z) | (y & (~z)); }
+        function H(x,y,z) { return (x ^ y ^ z); }
+        function I(x,y,z) { return (y ^ (x | (~z))); }
+    
+        function FF(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(F(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+    
+        function GG(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(G(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+    
+        function HH(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(H(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+    
+        function II(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(I(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+    
+        function ConvertToWordArray(string) {
+            var lWordCount;
+            var lMessageLength = string.length;
+            var lNumberOfWords_temp1=lMessageLength + 8;
+            var lNumberOfWords_temp2=(lNumberOfWords_temp1-(lNumberOfWords_temp1 % 64))/64;
+            var lNumberOfWords = (lNumberOfWords_temp2+1)*16;
+            var lWordArray=Array(lNumberOfWords-1);
+            var lBytePosition = 0;
+            var lByteCount = 0;
+            while ( lByteCount < lMessageLength ) {
+                lWordCount = (lByteCount-(lByteCount % 4))/4;
+                lBytePosition = (lByteCount % 4)*8;
+                lWordArray[lWordCount] = (lWordArray[lWordCount] | (string.charCodeAt(lByteCount)<<lBytePosition));
+                lByteCount++;
+            }
+            lWordCount = (lByteCount-(lByteCount % 4))/4;
+            lBytePosition = (lByteCount % 4)*8;
+            lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80<<lBytePosition);
+            lWordArray[lNumberOfWords-2] = lMessageLength<<3;
+            lWordArray[lNumberOfWords-1] = lMessageLength>>>29;
+            return lWordArray;
+        };
+    
+        function WordToHex(lValue) {
+            var WordToHexValue="",WordToHexValue_temp="",lByte,lCount;
+            for (lCount = 0;lCount<=3;lCount++) {
+                lByte = (lValue>>>(lCount*8)) & 255;
+                WordToHexValue_temp = "0" + lByte.toString(16);
+                WordToHexValue = WordToHexValue + WordToHexValue_temp.substr(WordToHexValue_temp.length-2,2);
+            }
+            return WordToHexValue;
+        };
+    
+        function Utf8Encode(string) {
+            string = string.replace(/\r\n/g,"\n");
+            var utftext = "";
+    
+            for (var n = 0; n < string.length; n++) {
+    
+                var c = string.charCodeAt(n);
+    
+                if (c < 128) {
+                    utftext += String.fromCharCode(c);
+                }
+                else if((c > 127) && (c < 2048)) {
+                    utftext += String.fromCharCode((c >> 6) | 192);
+                    utftext += String.fromCharCode((c & 63) | 128);
+                }
+                else {
+                    utftext += String.fromCharCode((c >> 12) | 224);
+                    utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                    utftext += String.fromCharCode((c & 63) | 128);
+                }
+    
+            }
+    
+            return utftext;
+        };
+    
+        var x=Array();
+        var k,AA,BB,CC,DD,a,b,c,d;
+        var S11=7, S12=12, S13=17, S14=22;
+        var S21=5, S22=9 , S23=14, S24=20;
+        var S31=4, S32=11, S33=16, S34=23;
+        var S41=6, S42=10, S43=15, S44=21;
+    
+        string = Utf8Encode(string);
+    
+        x = ConvertToWordArray(string);
+    
+        a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
+    
+        for (k=0;k<x.length;k+=16) {
+            AA=a; BB=b; CC=c; DD=d;
+            a=FF(a,b,c,d,x[k+0], S11,0xD76AA478);
+            d=FF(d,a,b,c,x[k+1], S12,0xE8C7B756);
+            c=FF(c,d,a,b,x[k+2], S13,0x242070DB);
+            b=FF(b,c,d,a,x[k+3], S14,0xC1BDCEEE);
+            a=FF(a,b,c,d,x[k+4], S11,0xF57C0FAF);
+            d=FF(d,a,b,c,x[k+5], S12,0x4787C62A);
+            c=FF(c,d,a,b,x[k+6], S13,0xA8304613);
+            b=FF(b,c,d,a,x[k+7], S14,0xFD469501);
+            a=FF(a,b,c,d,x[k+8], S11,0x698098D8);
+            d=FF(d,a,b,c,x[k+9], S12,0x8B44F7AF);
+            c=FF(c,d,a,b,x[k+10],S13,0xFFFF5BB1);
+            b=FF(b,c,d,a,x[k+11],S14,0x895CD7BE);
+            a=FF(a,b,c,d,x[k+12],S11,0x6B901122);
+            d=FF(d,a,b,c,x[k+13],S12,0xFD987193);
+            c=FF(c,d,a,b,x[k+14],S13,0xA679438E);
+            b=FF(b,c,d,a,x[k+15],S14,0x49B40821);
+            a=GG(a,b,c,d,x[k+1], S21,0xF61E2562);
+            d=GG(d,a,b,c,x[k+6], S22,0xC040B340);
+            c=GG(c,d,a,b,x[k+11],S23,0x265E5A51);
+            b=GG(b,c,d,a,x[k+0], S24,0xE9B6C7AA);
+            a=GG(a,b,c,d,x[k+5], S21,0xD62F105D);
+            d=GG(d,a,b,c,x[k+10],S22,0x2441453);
+            c=GG(c,d,a,b,x[k+15],S23,0xD8A1E681);
+            b=GG(b,c,d,a,x[k+4], S24,0xE7D3FBC8);
+            a=GG(a,b,c,d,x[k+9], S21,0x21E1CDE6);
+            d=GG(d,a,b,c,x[k+14],S22,0xC33707D6);
+            c=GG(c,d,a,b,x[k+3], S23,0xF4D50D87);
+            b=GG(b,c,d,a,x[k+8], S24,0x455A14ED);
+            a=GG(a,b,c,d,x[k+13],S21,0xA9E3E905);
+            d=GG(d,a,b,c,x[k+2], S22,0xFCEFA3F8);
+            c=GG(c,d,a,b,x[k+7], S23,0x676F02D9);
+            b=GG(b,c,d,a,x[k+12],S24,0x8D2A4C8A);
+            a=HH(a,b,c,d,x[k+5], S31,0xFFFA3942);
+            d=HH(d,a,b,c,x[k+8], S32,0x8771F681);
+            c=HH(c,d,a,b,x[k+11],S33,0x6D9D6122);
+            b=HH(b,c,d,a,x[k+14],S34,0xFDE5380C);
+            a=HH(a,b,c,d,x[k+1], S31,0xA4BEEA44);
+            d=HH(d,a,b,c,x[k+4], S32,0x4BDECFA9);
+            c=HH(c,d,a,b,x[k+7], S33,0xF6BB4B60);
+            b=HH(b,c,d,a,x[k+10],S34,0xBEBFBC70);
+            a=HH(a,b,c,d,x[k+13],S31,0x289B7EC6);
+            d=HH(d,a,b,c,x[k+0], S32,0xEAA127FA);
+            c=HH(c,d,a,b,x[k+3], S33,0xD4EF3085);
+            b=HH(b,c,d,a,x[k+6], S34,0x4881D05);
+            a=HH(a,b,c,d,x[k+9], S31,0xD9D4D039);
+            d=HH(d,a,b,c,x[k+12],S32,0xE6DB99E5);
+            c=HH(c,d,a,b,x[k+15],S33,0x1FA27CF8);
+            b=HH(b,c,d,a,x[k+2], S34,0xC4AC5665);
+            a=II(a,b,c,d,x[k+0], S41,0xF4292244);
+            d=II(d,a,b,c,x[k+7], S42,0x432AFF97);
+            c=II(c,d,a,b,x[k+14],S43,0xAB9423A7);
+            b=II(b,c,d,a,x[k+5], S44,0xFC93A039);
+            a=II(a,b,c,d,x[k+12],S41,0x655B59C3);
+            d=II(d,a,b,c,x[k+3], S42,0x8F0CCC92);
+            c=II(c,d,a,b,x[k+10],S43,0xFFEFF47D);
+            b=II(b,c,d,a,x[k+1], S44,0x85845DD1);
+            a=II(a,b,c,d,x[k+8], S41,0x6FA87E4F);
+            d=II(d,a,b,c,x[k+15],S42,0xFE2CE6E0);
+            c=II(c,d,a,b,x[k+6], S43,0xA3014314);
+            b=II(b,c,d,a,x[k+13],S44,0x4E0811A1);
+            a=II(a,b,c,d,x[k+4], S41,0xF7537E82);
+            d=II(d,a,b,c,x[k+11],S42,0xBD3AF235);
+            c=II(c,d,a,b,x[k+2], S43,0x2AD7D2BB);
+            b=II(b,c,d,a,x[k+9], S44,0xEB86D391);
+            a=AddUnsigned(a,AA);
+            b=AddUnsigned(b,BB);
+            c=AddUnsigned(c,CC);
+            d=AddUnsigned(d,DD);
+        }
+    
+        var temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
+    
+        return temp.toLowerCase();
+    }
+
     const CollectStateEnum = Object.freeze({ "none": 1, "collect": 2, "stopCollection": 3, "invitation": 4 });
     const SecurityLevelEnum = Object.freeze({ "safe": "Safe", "medium": "Medium", "low": "Low" });
     const CurrentViewEnum = Object.freeze({ "invitationView": 1, "messageView": 2, "csvView": 3 });
@@ -9,15 +218,13 @@ function DialogBox(id, callback)
     const csvList = "csvList";
     const minMilsecWaiting = 8000;
     const maxMilsecWaiting = 15000;
-    let _minW = 100, // The exact value get's calculated
-        _minH = 1, // The exact value get's calculated
-        _resizePixel = 5,
-        _hasEventListeners = !!window.addEventListener,
+    let _hasEventListeners = !!window.addEventListener,
         _last_known_scroll_position = 0,
         _dialog,
         _dialogTitle,
+        _needSignin = false,
         _dialogContent,
-        _dialogButtonPane,
+        _signinContent,
         _maxX, _maxY,
         _startX, _startY,
         _startW, _startH,
@@ -32,7 +239,6 @@ function DialogBox(id, callback)
         _whichButton,
         _buttons,
         _tabBoundary,
-        _callback, // Callback function which transfers the name of the selected button to the caller
         _zIndex, // Initial zIndex of this dialog box 
         _zIndexFlag = false, // Bring this dialog box to front 
         setCursor, // Forward declaration to get access to this function in the closure
@@ -51,7 +257,9 @@ function DialogBox(id, callback)
         _securityLevel = SecurityLevelEnum.safe,
         _setupDialog = null,
         _currentView = CurrentViewEnum.invitationView,
-        _delimiter = ',';
+        _delimiter = ',',
+        _token = ''
+        _version = "1.0.0.1";
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -304,17 +512,15 @@ function DialogBox(id, callback)
     {
         _dialog.style.minHeight = 34 + 'px';
         _dialog.style.height = 34 + 'px';
-        _dialog.style.minWidth = 203 + 'px';
-        _dialog.style.width = 203 + 'px';
+        _dialog.style.minWidth = 230 + 'px';
+        _dialog.style.width = 230 + 'px';
         
         _dialogContent.style.visibility = 'hidden';
         _dialogContent.style.display = 'none';
 
-        if (_dialogButtonPane) {
-            _dialogButtonPane.style.visibility = 'hidden';
-            _dialogButtonPane.style.display = 'none';
-        }
-        _dialogTitle.style.width = 170 + 'px';
+        _signinContent.style.visibility = 'hidden';
+        _signinContent.style.display = 'none';
+        _dialogTitle.style.width = '170px';
     },
 
     maximizeDialogContent = function ()
@@ -322,31 +528,35 @@ function DialogBox(id, callback)
         _dialog.style.height = '195px';
         _dialog.style.width = '304px';
         _dialog.style.top = (window.innerHeight - (window.innerHeight - _dialog.style.height) + window.scrollY) - 51 + 'px';
-        _dialogContent.style.visibility = 'visible';
-        _dialogContent.style.display = 'block';
-
-        if (_dialogButtonPane)
+        if(_needSignin)
         {
-            _dialogButtonPane.style.visibility = 'visible';
-            _dialogButtonPane.style.display = 'block';
+            _signinContent.style.visibility = 'visible';
+            _signinContent.style.display = 'block';
+        }
+        else
+        { 
+            _dialogContent.style.visibility = 'visible';
+            _dialogContent.style.display = 'block';
         }
         setDialogContent();
     }
 
-    function smoothScrollCurrentDocument()
+    function sleep(ms)
+    {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };
+
+    async function smoothScrollCurrentDocument()
     {
         var delta = document.body.scrollHeight / DocumentScrollDelta;
         var offset = 0.0;
         for (var i = 0; i < DocumentScrollDelta; i++)
         {
-            setTimeout(function ()
-            {
-                if (_state == CollectStateEnum.stopCollection)
-                    return;
-
-                offset += delta;
-                window.scrollTo(0, offset);
-            }, i * 1000);
+            if (_state == CollectStateEnum.stopCollection)
+                return;
+            offset += delta;
+            window.scrollTo(0, offset);
+            await sleep(3000);
         }
     }
 
@@ -397,6 +607,7 @@ function DialogBox(id, callback)
                         location: location,
                         isInvited: false,
                         isSelected: false,
+                        isSalesNavigator: false,
                         isError: false,
                         url: url.href,
                     };
@@ -409,6 +620,98 @@ function DialogBox(id, callback)
                     setState(CollectStateEnum.stopCollection);
             }, 1000);
         }, DocumentScrollDelta * 1000);
+    };
+
+    function loadTempCount()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('tempCount', function (result)
+            {
+                var count = result['tempCount'];
+                if (count == undefined)
+                    count = 0;
+                resolve(count);
+            })
+        });
+    };
+
+    function saveTempCount(count)
+    {
+        return new Promise(resolve =>
+        {
+            chrome.storage.local.set({ 'tempCount': count });
+            resolve();
+        });
+    };
+
+    parseSalesNavigatorPage = async function()
+    {
+        await smoothScrollCurrentDocument();
+        window.scrollTo(0, 0);
+
+        var divs = document.getElementsByClassName("pv5 ph2 search-results__result-item");
+        if (divs == undefined || divs.length == 0)
+        {
+            alert("There is no people");
+            setState(CollectStateEnum.stopCollection);
+            return;
+        }
+        var count = await loadTempCount();
+        for (var i = 0; i < divs.length; i++)
+        {
+            if (_state == CollectStateEnum.stopCollection || count >= _maxInvitationNum)
+            {
+                if(count >= _maxInvitationNum)
+                    alert('Parsed ' + _maxInvitationNum + ' accounts. Now you can start sending invitations.');
+                setState(CollectStateEnum.stopCollection);
+                return;
+            }
+            var div = divs[i];
+            var alreadyInvitedMark = div.getElementsByClassName("result-lockup__badge-icon m-type--saved mr1")[0];
+            if(alreadyInvitedMark != undefined)
+                continue;
+            var url = div.getElementsByClassName("result-lockup__icon-link ember-view")[0];
+            if (url == undefined || url.href === "")
+                continue;
+            var img = div.getElementsByClassName("lazy-image max-width max-height circle-entity-4 loaded")[0];
+            var dtName = div.getElementsByClassName("result-lockup__name")[0];
+            if(dtName == undefined)
+                continue;
+            var name = TrimParsedString(dtName.getElementsByTagName('a')[0]);
+            var parsedName = ParseName(name);
+            var position = TrimParsedString(div.getElementsByClassName("t-14 t-bold")[0]);
+            var location = TrimParsedString(div.getElementsByClassName("result-lockup__misc-item")[0]);
+            if (_currentInvitationList.people.find(p => p.url == url.href))
+                continue;
+            let person =
+            {
+                imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
+                name: name,
+                firstName: parsedName.split("/")[0],
+                lastName: parsedName.split("/")[1],
+                position: position,
+                location: location,
+                isInvited: false,
+                isSelected: false,
+                isSalesNavigator: true,
+                isError: false,
+                url: url.href,
+            };
+            _currentInvitationList.people.push(person);
+            count++;
+        }
+        saveCurrentInvitationList();
+        if (count < _maxInvitationNum)
+        {
+            await saveTempCount(count);
+            parseNextSalesNavigatorPage();
+        }
+        else
+        {
+            alert('Parsed ' + _maxInvitationNum + ' accounts. Now you can start sending invitations.');
+            setState(CollectStateEnum.stopCollection);
+        }
     };
 
     parseGeneralSearchPage = function ()
@@ -458,6 +761,7 @@ function DialogBox(id, callback)
                         location: location,
                         isInvited: false,
                         isSelected: false,
+                        isSalesNavigator: false,
                         isError: false,
                         url: url.href,
                     };
@@ -492,6 +796,18 @@ function DialogBox(id, callback)
         return div.textContent.trim();
     };
 
+    function parseNextSalesNavigatorPage()
+    {
+        var nextButton = document.getElementsByClassName("search-results__pagination-next-button")[0];
+        if (nextButton == undefined || nextButton.disabled)
+        {
+            alert("No more people");
+            setState(CollectStateEnum.stopCollection);
+            return;
+        }
+        nextButton.click();
+    }
+
     function parseNextPageUrl()
     {
         var nextButton = document.getElementsByClassName("artdeco-pagination__button artdeco-pagination__button--next artdeco-button artdeco-button--muted artdeco-button--icon-right artdeco-button--1 artdeco-button--tertiary ember-view")[0];
@@ -503,24 +819,172 @@ function DialogBox(id, callback)
         }
         nextButton.click();
     };
+
+    function saveCredentialsToken(login, pwd)
+    {
+        return new Promise(resolve =>
+        {
+            if(login == '' || pwd == '')
+            {
+                chrome.storage.local.set({ 'credentials': null });
+                resolve();
+                return;
+            }
+            let credentials = 
+            {
+                login: login,
+                password: pwd
+            };
+            chrome.storage.local.set({ 'credentials': credentials });
+            resolve();
+        });
+    };
+
+    function loadCredentials()
+    {
+        return new Promise(resolve => 
+        {
+            chrome.storage.local.get('credentials', function (result)
+            {
+                var credentials = result['credentials'];
+                if (credentials == undefined)
+                    resolve(null);
+                resolve(credentials);
+            })
+        });
+    };
+
+    refreshCredentials = async function()
+    {
+        var cred = await loadCredentials();
+        await tryToSignIn(cred.login, cred.password);
+    }
+
+    this.signout = function(showLabel)
+    {
+        _needSignin = true;
+        saveCredentialsToken('', '');
+        _token = '';
+        _signinContent.style.visibility = 'visible';
+        _dialogContent.style.visibility = 'hidden';
+        if(showLabel)
+            document.getElementById('wrongPwdLabel').style.visibility = 'visible';
+    }.bind(this);
+
+    tryToSignIn = function (login, password)
+    {
+        return new Promise(resolve => 
+        {
+            chrome.runtime.sendMessage({ greeting: "signin", login: login, password: password }, response => 
+            {
+                if(response == '')
+                {
+                    this.signout(true);
+                    resolve();
+                }
+                else
+                {
+                    var obj = JSON.parse(response);
+                    if(obj.token != undefined && obj.token != '')
+                    {
+                        _needSignin = false;
+                        _token = obj.token;
+                        _signinContent.style.visibility = 'hidden';
+                        _dialogContent.style.visibility = 'visible';
+                        _dialogContent.style.display = 'block';
+                        document.getElementById('wrongPwdLabel').style.visibility = 'hidden';
+                        getAccountInfo(login, password);
+                    }
+                    else
+                        this.signout(true);
+                    resolve();
+                }
+            });
+        });
+    };
+
+    getAccountInfo = function (login, password)
+    {
+        return new Promise(resolve => 
+        {
+            chrome.runtime.sendMessage({ greeting: "subscriptioninfo", token: _token, login: login, password: password }, response =>
+            {
+                var info = JSON.parse(response);
+                if(info._version != _version)
+                    document.getElementById('linkedExtenderUpdate').style.visibility = 'visible';
+                else
+                    document.getElementById('linkedExtenderUpdate').style.visibility = 'hidden';
+                saveAccountInfo(info);
+                resolve();
+            });
+        });
+    };
     	
-	whichClick = function(btn)
-    {   
-        if (btn.name === "cancel")
+	whichClick = async function(btn)
+    {
+        if(btn.name == "signin")
+        {
+            let login = document.getElementById('loginInput').value;
+            let password = MD5(document.getElementById('passwordInput').value);
+            if(login == '' || password == '')
+                return;
+            await new Promise(resolve =>
+            {
+                chrome.runtime.sendMessage({ greeting: "signin", login: login, password: password }, response => 
+                {
+                    if(response == '')
+                    {
+                        document.getElementById('passwordInput').value = '';
+                        document.getElementById('wrongPwdLabel').style.visibility = 'visible';
+                        resolve();
+                    }
+                    else
+                    {
+                        var obj = JSON.parse(response);
+                        if(obj.token != undefined && obj.token != '')
+                        {
+                            _needSignin = false;
+                            _token = obj.token;
+                            saveCredentialsToken(login, password);
+                            _signinContent.style.visibility = 'hidden';
+                            _dialogContent.style.visibility = 'visible';
+                            _dialogContent.style.display = 'block';
+                            getAccountInfo(login, password);
+                            document.getElementById('wrongPwdLabel').style.visibility = 'hidden';
+                            document.getElementById('loginInput').value = '';
+                            document.getElementById('passwordInput').value = '';
+                        }
+                        else
+                        {
+                            document.getElementById('passwordInput').value = '';
+                            document.getElementById('wrongPwdLabel').style.visibility = 'visible';
+                        }
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        else if (btn.name === "cancel")
         {
             setState(CollectStateEnum.stopCollection);
             return;
         }
         
-        if (btn.name === 'collect')
+        else if (btn.name === 'collect')
         {
             if(_currentView == CurrentViewEnum.invitationView)
             {
-                if (window.location.toString().indexOf("facetNetwork=%5B%22S%22%5D") == -1)
+                let currentUrl = window.location.toString();
+                if (currentUrl.indexOf("facetNetwork=%5B%22S%22%5D") == -1 &&
+                    currentUrl.indexOf("sales/search/people") == -1)
                     _invitaionDlg.showInvitationDialog();
                 else
                 {
-                    parseGeneralSearchPage();
+                    if (currentUrl.indexOf("facetNetwork=%5B%22S%22%5D") != -1)
+                        parseGeneralSearchPage();
+                    else if(currentUrl.indexOf("sales/search/people") != -1)
+                        parseSalesNavigatorPage();
                     setState(CollectStateEnum.collect);
                 }   
             }
@@ -554,7 +1018,7 @@ function DialogBox(id, callback)
             }
         }
 
-        if (btn.name === "open")
+        else if (btn.name === "open")
         {
             if(_currentView == CurrentViewEnum.invitationView)
                 _invitedList.showInvitedList(_state, _currentInvitationList, _securityLevel, _currentView);
@@ -563,9 +1027,6 @@ function DialogBox(id, callback)
             else if(_currentView == CurrentViewEnum.csvView)
                 _invitedList.showInvitedList(_state, _currentCsvList, _securityLevel, _currentView);
         }
-
-		if (_callback)
-			_callback(btn.name);
     };
 
     updateInvitationView = function()
@@ -730,6 +1191,9 @@ function DialogBox(id, callback)
     setState = function(state)
     {
         _state = state;
+        if(_state == CollectStateEnum.stopCollection)
+            saveTempCount(0);
+
         if(_currentView == CurrentViewEnum.invitationView)
             updateInvitationView();
         else if(_currentView == CurrentViewEnum.messageView)
@@ -760,33 +1224,11 @@ function DialogBox(id, callback)
 	
     setDialogContent = function ()
     {
-		// Let's try to get rid of some of constants in javascript but use values from css
-		var	_dialogContentStyle = getComputedStyle(_dialogContent),
-			_dialogButtonPaneStyle,
-			_dialogButtonPaneStyleBefore;
-        if (_buttons.length > 1)
-        {
-			_dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane);
-			_dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before");
-		}
-
-		var w = _dialog.clientWidth,
-			h = _dialog.clientHeight - (parseInt(_dialogContentStyle.top) // .dialog .content { top: 48px } 
-				+ 16 // ?
-				+ (_buttons.length > 1 ? 
-					+ parseInt(_dialogButtonPaneStyleBefore.borderBottom) // .dialog .buttonpane:before { border-bottom: 1px; }
-					- parseInt(_dialogButtonPaneStyleBefore.top) // .dialog .buttonpane:before { height: 0; top: -16px; }
-					+ parseInt(_dialogButtonPaneStyle.height) // .dialog .buttonset button { height: 32px; }
-					+ parseInt(_dialogButtonPaneStyle.bottom) // .dialog .buttonpane { bottom: 16px; }
-					: 0 )
-				); // Ensure to get minimal height
-		_dialogContent.style.width = w + 'px';
+        var	_dialogContentStyle = getComputedStyle(_dialogContent);
+        var h = _dialog.clientHeight - (parseInt(_dialogContentStyle.top) + 16);
+		_dialogContent.style.width = '302px';
 		_dialogContent.style.height = h + 'px';
-
-		if (_dialogButtonPane) // The buttonpane is optional
-			_dialogButtonPane.style.width = w + 'px';
-
-		_dialogTitle.style.width = w + 'px';
+		_dialogTitle.style.width = '294px';
 	};
 	
     showDialog = function ()
@@ -810,7 +1252,13 @@ function DialogBox(id, callback)
             setTimeout(() =>
             {
                 if(_currentView == CurrentViewEnum.invitationView)
-                    parseGeneralSearchPage();
+                {
+                    let currentUrl = window.location.toString();
+                    if (currentUrl.indexOf("facetNetwork") != -1)
+                        parseGeneralSearchPage();
+                    else if(currentUrl.indexOf("sales/search/people") != -1)
+                        parseSalesNavigatorPage();
+                }
                 else if(_currentView == CurrentViewEnum.messageView)
                     parseFirstConnectionsPage(_currentMessageList, _maxMsgNum, saveCurrentMessageList);
                 else if(_currentView == CurrentViewEnum.csvView)
@@ -930,20 +1378,23 @@ function DialogBox(id, callback)
         
     }.bind(this);
 
-    this.init = function (id, callback)
+    this.init = function (id, needSignin)
     {
 		_dialog = document.getElementById(id);
-		_callback = callback; // Register callback function
 		_dialog.style.visibility = 'hidden'; // We dont want to see anything..
 		_dialog.style.display = 'block'; // but we need to render it to get the size of the dialog box
 		_dialogTitle = _dialog.querySelector('.titlebar');
-		_dialogContent = _dialog.querySelector('.customRootPanel');
-		_dialogButtonPane = _dialog.querySelector('.buttonpane');
+        _dialogContent = _dialog.querySelector('.customRootPanel');
+        _signinContent = _dialog.querySelector('.signinRootPanel');
         _buttons = _dialog.querySelectorAll('button');  // Ensure to get minimal width
         _invitaionDlg = new invitationDialog();
         _invitedList = new invitedList(setState);
         _createListDialog = new createInvitationListDialog(this.createNewList);
-        _setupDialog = new createSetupDialog();
+        _setupDialog = new createSetupDialog(this.signout);
+        _needSignin = needSignin;
+        if(!_needSignin)
+            refreshCredentials();
+        
         document.getElementById('linkedExtenderShowSetup').onclick = function()
         {
             _setupDialog.showSetupDialog(_securityLevel, _delimiter, setSecurityLevel, setDelimiter);
@@ -999,19 +1450,6 @@ function DialogBox(id, callback)
         };
 
         openPanel('invitePnl', invitationsBtn);
-
-		// Let's try to get rid of some of constants in javascript but use values from css
-		var dialogStyle = getComputedStyle(_dialog),			
-			dialogContentStyle = getComputedStyle(_dialogContent),
-			dialogButtonPaneStyle,
-			dialogButtonPaneStyleBefore,
-			dialogButtonStyle;
-        if (_buttons.length > 1)
-        {
-			dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane);
-			dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before");
-			dialogButtonStyle = getComputedStyle(_buttons[1]);
-        }
                 
 		setDialogContent();		
 		
@@ -1342,6 +1780,15 @@ function DialogBox(id, callback)
             chrome.storage.local.set({ 'invitationNum': _maxInvitationNum });
     }
 
+    function saveAccountInfo(info)
+    {
+        return new Promise(resolve =>
+        {
+            chrome.storage.local.set({ 'accountInfo': info });
+            resolve();
+        });
+    }
+
     function saveMsgNum()
     {
         if (_dialog != null)
@@ -1477,7 +1924,7 @@ function DialogBox(id, callback)
     }
 
     // Execute constructor
-	this.init(id, callback);
+	this.init(id, needSignin);
 
 	// Public interface 
     this.showDialog = showDialog;

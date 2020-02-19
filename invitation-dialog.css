@@ -31,96 +31,51 @@
     left: 50%
 }
 
-@-webkit-keyframes animatetop {
-    from {
-        top: -300px;
-        opacity: 0
-    }
-
-    to {
-        top: 50%;
-        opacity: 1
-    }
-}
-
-@keyframes animatetop {
-    from {
-        top: -300px;
-        opacity: 0
-    }
-
-    to {
-        top: 50%;
-        opacity: 1
-    }
-}
-
-.modalInvitationDlg button {
-    -webkit-transition: 0.25s;
-    transition: 0.25s;
-    color: #fff;
-}
-
-.modalInvitationDlg button::-moz-focus-inner {
-    border: 0;
-}
-
-.modalInvitationDlg button:hover,
-.modalInvitationDlg button.active {
-    cursor: pointer;
-}
-
-.modalInvitationDlg > button {
-    width: 32px; /* change NOT allowed */
-    height: 32px; /* same as .dialog .titlebar height */
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0;
-    border: 0;
-    font-size: 1.4em;
-    background: #fa0;
-}
-    
-.modalInvitationDlg > button:hover,
-.modalInvitationDlg > button.focus {
-    box-shadow: inset -16px 0 0 0 #e80, inset 16px 0 0 0 #e80;
-}
-
-.modalInvitationDlg > button.active {
-    background: #f55; /* irrelevant */
-    border: 1px solid #ddd; /* irrelevant */
-}
-
-.modalInvitationDlg .modal-content button {
-    height: 32px; /* change allowed */
-    min-width: 100px; /* change allowed */
+.modalInvitationDlg button
+{
+    height: 32px; 
+    min-width: 70px;
     font-size: 1.1em;
-    padding: 0em 1em 0em; /* irrelevant */
-    border: 2px solid #fff; /* change allowed */
-    border-radius: 4px; /* change allowed */
-    margin-left: 16px; /* change NOT allowed */
-    background: #39c;
+    padding: 0; 
+	background: #39c;
+	-webkit-transition: 0.25s;
+	transition: 0.25s;
+	color: #fff;
 }
 
-.modalInvitationDlg .modal-content button:first-child {
+.modalInvitationDlg button:first-child {
     margin-left: 0;
 }
 
-.modalInvitationDlg .modal-content button:hover {
-    box-shadow: inset -90px 0 0 0 #17a, inset 90px 0 0 #17a;
+.modalInvitationDlg button:hover,
+.modalInvitationDlg button:focus
+{
+    box-shadow: none;
+	outline: none !important;
 }
 
-.modalInvitationDlg .modal-content button.active {
-    background: #1a7;
-    border-color: #ddd;
+@-webkit-keyframes animatetop
+{
+    from {
+        top: -300px;
+        opacity: 0
+    }
+
+    to {
+        top: 50%;
+        opacity: 1
+    }
 }
 
-.buttons {
-    text-align: center;
-}
+@keyframes animatetop
+{
+    from {
+        top: -300px;
+        opacity: 0
+    }
 
-.cancelpane {
-    text-align: center;
-    margin-top: 50px;
+    to {
+        top: 50%;
+        opacity: 1
+    }
 }
