@@ -218,6 +218,7 @@ function DialogBox(id, needSignin)
     const csvList = "csvList";
     const minMilsecWaiting = 8000;
     const maxMilsecWaiting = 15000;
+    const Version = "1.0.0.0";
     let _hasEventListeners = !!window.addEventListener,
         _last_known_scroll_position = 0,
         _dialog,
@@ -258,8 +259,7 @@ function DialogBox(id, needSignin)
         _setupDialog = null,
         _currentView = CurrentViewEnum.invitationView,
         _delimiter = ',',
-        _token = ''
-        _version = "1.0.0.1";
+        _token = '';
 	
 	addEvent = function(elm, evt, callback)
     {
@@ -560,66 +560,70 @@ function DialogBox(id, needSignin)
         }
     }
 
-    parseFirstConnectionsPage = function(currentList, maxNum, saveFunc)
+    parseFirstConnectionsPage = async function(currentList, maxNum, saveFunc)
     {
-        smoothScrollCurrentDocument();
-
-        setTimeout(function ()
+        await smoothScrollCurrentDocument();
+        window.scrollTo(0, 0);
+            
+        var divs = document.getElementsByClassName("search-result__wrapper");
+        if (divs == undefined || divs.length == 0)
         {
-            window.scrollTo(0, 0);
-            setTimeout(function ()
+            alert("There is no people");
+            setState(CollectStateEnum.stopCollection);
+            return;
+        }
+        var count = await loadTempCount();
+        for (var i = 0; i < divs.length; i++)
+        {
+            if (_state == CollectStateEnum.stopCollection || count >= maxNum)
             {
-                var divs = document.getElementsByClassName("search-result__wrapper");
-                if (divs == undefined || divs.length == 0)
-                {
-                    alert("There is no people");
-                    setState(CollectStateEnum.stopCollection);
-                    return;
-                }
-                for (var i = 0; i < divs.length; i++)
-                {
-                    if (_state == CollectStateEnum.stopCollection || currentList.people.length >= maxNum)
-                    {
-                        setState(CollectStateEnum.stopCollection);
-                        return;
-                    }
-                    var div = divs[i];
-                    var actionButton = div.getElementsByClassName("message-anywhere-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
-                    if (actionButton == undefined || actionButton.disabled)
-                        continue;
-                    var url = div.getElementsByClassName("search-result__result-link ember-view")[0];
-                    if (url == undefined || url.href === "")
-                        continue;
-                    var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
-                    var name = TrimParsedString(div.getElementsByClassName("name actor-name")[0]);
-                    var parsedName = ParseName(name);
-                    var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
-                    var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
-                    if (currentList.people.find(p => p.url == url.href))
-                        continue;
-                    let person =
-                    {
-                        imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
-                        name: name,
-                        firstName: parsedName.split("/")[0],
-                        lastName: parsedName.split("/")[1],
-                        position: position,
-                        location: location,
-                        isInvited: false,
-                        isSelected: false,
-                        isSalesNavigator: false,
-                        isError: false,
-                        url: url.href,
-                    };
-                    currentList.people.push(person);
-                }
-                saveFunc();
-                if (currentList.people.length < maxNum)
-                    parseNextPageUrl();
-                else
-                    setState(CollectStateEnum.stopCollection);
-            }, 1000);
-        }, DocumentScrollDelta * 1000);
+                if(count >= maxNum)
+                    alert('Parsed ' + maxNum + ' accounts.');
+                setState(CollectStateEnum.stopCollection);
+                return;
+            }
+            var div = divs[i];
+            var actionButton = div.getElementsByClassName("message-anywhere-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
+            if (actionButton == undefined || actionButton.disabled)
+                continue;
+            var url = div.getElementsByClassName("search-result__result-link ember-view")[0];
+            if (url == undefined || url.href === "")
+                continue;
+            var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
+            var name = TrimParsedString(div.getElementsByClassName("name actor-name")[0]);
+            var parsedName = ParseName(name);
+            var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
+            var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
+            if (currentList.people.find(p => p.url == url.href))
+                continue;
+            let person =
+            {
+                imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
+                name: name,
+                firstName: parsedName.split("/")[0],
+                lastName: parsedName.split("/")[1],
+                position: position,
+                location: location,
+                isInvited: false,
+                isSelected: false,
+                isSalesNavigator: false,
+                isError: false,
+                url: url.href,
+            };
+            currentList.people.push(person);
+            count++;
+        }
+        saveFunc();
+        if (currentList.people.length < maxNum)
+        {
+            await saveTempCount(count);
+            parseNextPageUrl();
+        }
+        else
+        {
+            alert('Parsed ' + maxNum + ' accounts.');
+            setState(CollectStateEnum.stopCollection);
+        }
     };
 
     function loadTempCount()
@@ -714,67 +718,71 @@ function DialogBox(id, needSignin)
         }
     };
 
-    parseGeneralSearchPage = function ()
+    parseGeneralSearchPage = async function ()
     {
-        smoothScrollCurrentDocument();
-
-        setTimeout(function ()
+        await smoothScrollCurrentDocument();
+        window.scrollTo(0, 0);
+        
+        var divs = document.getElementsByClassName("search-result__wrapper");
+        if (divs == undefined || divs.length == 0)
         {
-            window.scrollTo(0, 0);
-            setTimeout(function ()
+            alert("There is no people");
+            setState(CollectStateEnum.stopCollection);
+            return;
+        }
+        var count = await loadTempCount();
+        for (var i = 0; i < divs.length; i++)
+        {
+            if (_state == CollectStateEnum.stopCollection || count >= _maxInvitationNum)
             {
-                var divs = document.getElementsByClassName("search-result__wrapper");
-                if (divs == undefined || divs.length == 0)
-                {
-                    alert("There is no people");
-                    setState(CollectStateEnum.stopCollection);
-                    return;
-                }
-                for (var i = 0; i < divs.length; i++)
-                {
-                    if (_state == CollectStateEnum.stopCollection || _currentInvitationList.people.length >= _maxInvitationNum)
-                    {
-                        setState(CollectStateEnum.stopCollection);
-                        return;
-                    }
-                    var div = divs[i];
-                    var actionButton = div.getElementsByClassName("search-result__action-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
-                    if (actionButton == undefined || actionButton.disabled)
-                        continue;
-                    var url = div.getElementsByClassName("search-result__result-link ember-view")[0];
-                    if (url == undefined || url.href === "")
-                        continue;
-                    var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
-                    var name = TrimParsedString(div.getElementsByClassName("name actor-name")[0]);
-                    var parsedName = ParseName(name);
-                    var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
-                    var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
-                    if (_currentInvitationList.people.find(p => p.url == url.href))
-                        continue;
-                    let person =
-                    {
-                        imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
-                        name: name,
-                        firstName: parsedName.split("/")[0],
-                        lastName: parsedName.split("/")[1],
-                        position: position,
-                        location: location,
-                        isInvited: false,
-                        isSelected: false,
-                        isSalesNavigator: false,
-                        isError: false,
-                        url: url.href,
-                    };
-                    _currentInvitationList.people.push(person);                    
-                }
-                saveCurrentInvitationList();
-                if (_currentInvitationList.people.length < _maxInvitationNum)
-                    parseNextPageUrl();
-                else
-                    setState(CollectStateEnum.stopCollection);
-            }, 1000);
-        }, DocumentScrollDelta * 1000);
-    }
+                if(count >= _maxInvitationNum)
+                    alert('Parsed ' + _maxInvitationNum + ' accounts. Now you can start sending invitations.');
+                setState(CollectStateEnum.stopCollection);
+                return;
+            }
+            var div = divs[i];
+            var actionButton = div.getElementsByClassName("search-result__action-button search-result__actions--primary artdeco-button artdeco-button--default artdeco-button--2 artdeco-button--secondary")[0];
+            if (actionButton == undefined || actionButton.disabled)
+                continue;
+            var url = div.getElementsByClassName("search-result__result-link ember-view")[0];
+            if (url == undefined || url.href === "")
+                continue;
+            var img = div.getElementsByClassName("ivm-view-attr__img--centered EntityPhoto-circle-4  presence-entity__image EntityPhoto-circle-4 lazy-image loaded ember-view")[0];
+            var name = TrimParsedString(div.getElementsByClassName("name actor-name")[0]);
+            var parsedName = ParseName(name);
+            var position = TrimParsedString(div.getElementsByClassName("subline-level-1 t-14 t-black t-normal search-result__truncate")[0]);
+            var location = TrimParsedString(div.getElementsByClassName("subline-level-2 t-12 t-black--light t-normal search-result__truncate")[0]);
+            if (_currentInvitationList.people.find(p => p.url == url.href))
+                continue;
+            let person =
+            {
+                imgUri: img == undefined ? "https://www.oblgazeta.ru/static/images/no-avatar.png" : img.src,
+                name: name,
+                firstName: parsedName.split("/")[0],
+                lastName: parsedName.split("/")[1],
+                position: position,
+                location: location,
+                isInvited: false,
+                isSelected: false,
+                isSalesNavigator: false,
+                isError: false,
+                url: url.href,
+            };
+            _currentInvitationList.people.push(person);
+            count++;
+        }
+        saveCurrentInvitationList();
+        if (count < _maxInvitationNum)
+        {
+            await saveTempCount(count);
+            parseNextPageUrl();
+        }
+        else
+        {
+            alert('Parsed ' + _maxInvitationNum + ' accounts. Now you can start sending invitations.');
+            setState(CollectStateEnum.stopCollection);
+        }
+    };
 
     function ParseName(fullName)
     {
@@ -910,7 +918,7 @@ function DialogBox(id, needSignin)
             chrome.runtime.sendMessage({ greeting: "subscriptioninfo", token: _token, login: login, password: password }, response =>
             {
                 var info = JSON.parse(response);
-                if(info._version != _version)
+                if(info.version != undefined && info.version != Version)
                     document.getElementById('linkedExtenderUpdate').style.visibility = 'visible';
                 else
                     document.getElementById('linkedExtenderUpdate').style.visibility = 'hidden';
@@ -973,6 +981,7 @@ function DialogBox(id, needSignin)
         
         else if (btn.name === 'collect')
         {
+            await saveTempCount(0);
             if(_currentView == CurrentViewEnum.invitationView)
             {
                 let currentUrl = window.location.toString();
@@ -1225,7 +1234,7 @@ function DialogBox(id, needSignin)
     setDialogContent = function ()
     {
         var	_dialogContentStyle = getComputedStyle(_dialogContent);
-        var h = _dialog.clientHeight - (parseInt(_dialogContentStyle.top) + 16);
+        var h = _dialog.clientHeight - parseInt(_dialogContentStyle.top);
 		_dialogContent.style.width = '302px';
 		_dialogContent.style.height = h + 'px';
 		_dialogTitle.style.width = '294px';

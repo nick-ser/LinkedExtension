@@ -146,11 +146,17 @@ function invitedList(setState)
                 launchBtn.disabled = true;
                 launchBtn.style = 'background-color: green';
                 downloadBtn.disabled = true;
-                downloadBtn.style = 'background-color: gray'; 
+                downloadBtn.style = 'background-color: gray';
                 if(this.currentView == CurrentViewEnum.invitationView)
+                {
+                    downloadBtn.style.display = 'none';
                     this.startInvitationCampaign();
+                }
                 else if(this.currentView == CurrentViewEnum.messageView)
+                {
+                    downloadBtn.style.display = 'none';
                     this.startMessagingCampaign();
+                }
                 else if(this.currentView == CurrentViewEnum.csvView)
                     this.startCsvCampaign();
             }.bind(this);
@@ -400,13 +406,13 @@ function invitedList(setState)
         switch(this.securityLevel)
         {
             case SecurityLevelEnum.safe:
-                return Math.random() * (300000 - 180000) + 180000;
+                return Math.random() * (110000 - 90000) + 90000;
             break;
             case SecurityLevelEnum.medium:
-                return Math.random() * (240000 - 120000) + 120000;
+                return Math.random() * (80000 - 60000) + 60000;
             break;
             case SecurityLevelEnum.low:
-                return Math.random() * (20000 - 10000) + 10000;
+                return Math.random() * (50000 - 30000) + 30000;
             break;
         }
     }.bind(this);
@@ -864,9 +870,9 @@ function invitedList(setState)
                     }
                 }
                 
-                await sleep(2000);                
+                await sleep(5000);                
                 window.history.pushState(null, null, person.url + 'detail/contact-info/');
-                await sleep(2000);
+                await sleep(5000);
                 window.history.back();
                 await sleep(1000);
                 window.history.forward();
@@ -1040,11 +1046,13 @@ function invitedList(setState)
         {
             downloadBtn.disabled = false;
             downloadBtn.style = 'background-color: #39c';
+            downloadBtn.style.display = 'block';
         }
         else
         {
             downloadBtn.disabled = true;
-            downloadBtn.style = 'background-color: gray'; 
+            downloadBtn.style = 'background-color: gray';
+            downloadBtn.style.display = 'block';
         }
         document.getElementById('stopInvitation').disabled = true;
         document.getElementById('stopInvitation').style = 'background-color: gray';                
@@ -1099,14 +1107,16 @@ function invitedList(setState)
                 msg = msg.replace(LastNameDelimiter, person.lastName);
                 msg = msg.replace(PositionDelimiter, person.position);
                 msg = msg.replace(LocationDelimiter, person.location);
+
                 await sleep(5000);                
                 window.history.pushState(null, null, person.url);
                 await sleep(5000);
                 window.history.back();
                 await sleep(1000);
                 window.history.forward();
-                var delay = Math.round(this.getDelay()) / 3;
+                var delay = Math.round(this.getDelay());
                 await sleep(delay);
+
                 var delta = document.body.scrollHeight / DocumentScrollDelta;
                 var offset = 0.0;
                 for (let j = 0; j < DocumentScrollDelta; j++)
@@ -1116,20 +1126,20 @@ function invitedList(setState)
                     await sleep(j*1000);
                 }
                 window.scrollTo(0, 0);
+
                 var sendMsgBtn = document.getElementsByClassName(SendMessageBtnClass)[0];
                 if(sendMsgBtn == undefined)
                     throw("Send msg button hasn't been found.");
                 if(sendMsgBtn.disabled)
                     throw("Send msg button is disabled.")
                 sendMsgBtn.click();
-                await sleep(delay);
+                await sleep(1000);
 
                 var msgDiv = document.getElementsByClassName(MsgTextAreaClass)[0];
                 if(msgDiv == undefined)
                     throw("Message text area hasn't been found.");
-                SetTextToLinkedinMsgWnd(msgDiv, msg); 
-                
-                await sleep(5000);
+                SetTextToLinkedinMsgWnd(msgDiv, msg);
+                await sleep(1000);
                 var sentBtn = document.getElementsByClassName(DoSendMsgBtnClass)[0];
                 if(sentBtn == undefined)
                     throw("Msg sent button hasn't been found.");
@@ -1137,7 +1147,7 @@ function invitedList(setState)
                     throw("Msg sent button is disabled.")
                 sentBtn.click();
 
-                await sleep(delay);
+                await sleep(1000);
                 var closeSendMsgBtn = document.getElementsByClassName(CloseSendMsgWindowBtnClass)[0];
                 if(closeSendMsgBtn == undefined)
                     throw("Close send msg window button hasn't been found.");
@@ -1199,7 +1209,6 @@ function invitedList(setState)
                 await sleep(1000);
                 window.history.forward();
                 var delay = this.getDelay();
-                console.log("Invitation sending delay: " + delay);
                 await sleep(delay);
 
                 var delta = document.body.scrollHeight / DocumentScrollDelta;
