@@ -159,6 +159,34 @@ dialog .titlebar button.focus
 	outline: none !important;
 }
 
+.signin 
+{
+	height: 32px; 
+    width: 70px; 
+    font-size: 1.1em;
+    padding: 0; 
+	background: #39c;
+	-webkit-transition: 0.25s;
+	transition: 0.25s;
+	color: #fff;
+}
+
+.signin:first-child {
+    margin-left: 0;
+}
+
+.signin:hover,
+.signin:focus
+{
+    box-shadow: none;
+	outline: none !important;
+}
+
+.signin.active {
+    background: #1a7;
+    border-color: #ddd;
+}
+
 .dialog .content button
 {
     height: 32px; 

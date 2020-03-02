@@ -47,7 +47,7 @@ async function buildDialog(type)
                         Wrong login/password or your license expired. </label>
                     </div>
                     <div style="margin-top: 15px; margin-left: 190px;">
-                        <button class="tablink" name="signin">Sign In</button>
+                        <button class="signin" type=submit name="signin">Sign In</button>
                     </div>
                 </div>
                 <div class="customRootPanel"  style="visibility:visible;">
@@ -64,7 +64,7 @@ async function buildDialog(type)
                             </div>
                             <div style="margin-top: 10px;">
                                 <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> How many profiles to invite: </label>
-                                <input id="invitationNumber" style="height: 26px; width: 52px; margin-left: 23px;"></input>
+                                <input id="invitationNumber" style="height: 26px; width: 52px; margin-left: 23px;" value="50"></input>
                             </div>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <button id="collectBtn" name="collect">Collect</button>
@@ -79,7 +79,7 @@ async function buildDialog(type)
                             </div>
                             <div style="margin-top: 10px;">
                                 <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> How many profiles to message: </label>
-                                <input id="msgNumber" style="height: 26px; width: 52px;"></input>
+                                <input id="msgNumber" style="height: 26px; width: 52px;" value="50"></input>
                                 </div>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <button id="collectMsgBtn" name="collect">Collect</button>
@@ -94,7 +94,7 @@ async function buildDialog(type)
                             </div>
                             <div style="margin-top: 10px;">
                                 <label style="display: inline; vertical-align: middle; margin-left: 10px; color: #fff;"> How many profiles to parse: </label>
-                                <input id="csvNumber" style="height: 26px; width: 52px; margin-left: 23px;"></input>
+                                <input id="csvNumber" style="height: 26px; width: 52px; margin-left: 23px;" value="50"></input>
                                 </div>
                             <div style="margin-top: 10px; margin-left: 10px;">
                                 <button id="collectCsvBtn" name="collect">Collect</button>

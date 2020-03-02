@@ -16,6 +16,16 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab)
     }   	
 });
 
+chrome.declarativeContent.onPageChanged.removeRules(undefined, function() {
+    chrome.declarativeContent.onPageChanged.addRules([{
+      conditions: [new chrome.declarativeContent.PageStateMatcher({
+        pageUrl: {hostEquals: 'developer.chrome.com'},
+      })
+      ],
+          actions: [new chrome.declarativeContent.ShowPageAction()]
+    }]);
+  });
+
 chrome.tabs.onRemoved.addListener(function (tabId, changeInfo)
 {
     if(_tabId == tabId)

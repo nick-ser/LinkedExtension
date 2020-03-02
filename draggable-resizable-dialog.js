@@ -1,6 +1,5 @@
 function DialogBox(id, needSignin)
 {
-
     var MD5 = function (string)
     {
         function RotateLeft(lValue, iShiftBits)
@@ -422,7 +421,7 @@ function DialogBox(id, needSignin)
                 scrollL = _maxX - window.innerWidth + 20;
         }
         window.scrollTo(scrollL, scrollT);
-        saveDialogSettings();
+        //saveDialogSettings();
     };
 
     onMouseMove = function (evt)
@@ -519,7 +518,6 @@ function DialogBox(id, needSignin)
         _dialogContent.style.display = 'none';
 
         _signinContent.style.visibility = 'hidden';
-        _signinContent.style.display = 'none';
         _dialogTitle.style.width = '170px';
     },
 
@@ -531,7 +529,6 @@ function DialogBox(id, needSignin)
         if(_needSignin)
         {
             _signinContent.style.visibility = 'visible';
-            _signinContent.style.display = 'block';
         }
         else
         { 
@@ -1416,7 +1413,7 @@ function DialogBox(id, needSignin)
             else
                 maximizeDialogContent();            
             _isMinimized = !_isMinimized;
-            saveDialogSettings();
+            //saveDialogSettings();
         }.bind(this);
 
         document.getElementById(invitationsList).addEventListener('change', (event) =>
@@ -1466,7 +1463,7 @@ function DialogBox(id, needSignin)
 		_dialog.style.visibility = 'visible'; // and undo visibility = 'hidden'
 
         _dialogTitle.tabIndex = '0';
-        loadDialogSettings();
+        //loadDialogSettings();
 
         var iniviteNumInput = document.getElementById("invitationNumber");
         setInputFilter(iniviteNumInput, function(value) 
@@ -1548,7 +1545,7 @@ function DialogBox(id, needSignin)
             if (isNaN(top))
                 top = 50;
             _dialog.style.top = scroll_pos + top + 'px';
-            saveDialogSettings();
+            //saveDialogSettings();
         }
     };
 

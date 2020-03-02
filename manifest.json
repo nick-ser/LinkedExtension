@@ -1,8 +1,9 @@
 {
-  "name": "Headline Fetcher",
+  "name": "LinkedExtender",
+  "short_name": "Linked Extender",
   "manifest_version": 2,
-  "version": "0.0.1",
-  "description": "Retrieves headlines relevant to the website you are currently on",
+  "version": "1.0.0",
+  "description": "Generate leads, increase engagement & drive sales on Linkedin.",
   "content_scripts": [
     {
       "css": [
@@ -26,11 +27,20 @@
       "matches": [ "<all_urls>" ]
     }
   ],
+  "icons": {
+    "16": "Images/icon-16.png",
+    "128": "Images/icon-128.png"
+  },
+  "browser_action": {
+    "default_title": "Linked Extender",
+    "default_popup": "html/popup.html"
+  },
   "background": {
     "persistent": true,
     "scripts": [ "background.js" ]
   },
   "permissions": [
+    "declarativeContent",
     "webRequest",
     "webRequestBlocking",
     "browsingData",
