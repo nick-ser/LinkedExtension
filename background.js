@@ -60,13 +60,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse)
 
     if (request.greeting == "weather")
     {
-        var url = "https://todoapifrommacos.azurewebsites.net/WeatherForecast";
+        var url = "https://linkedextender.azurewebsites.net/WeatherForecast";
         sendGetRequest(url, request.token, request.login, request.password, sendResponse);
         return true;
     }
     if(request.greeting == "subscriptioninfo")
     {
-        var url = "https://todoapifrommacos.azurewebsites.net/account/subscriptioninfo";
+        var url = "https://linkedextender.azurewebsites.net/account/subscriptioninfo";
         sendGetRequest(url, request.token, request.login, request.password, sendResponse);
         return true;
     }
@@ -113,7 +113,7 @@ function getToken(login, password, sendResponse)
 {
     try
     {   
-        var url = "https://todoapifrommacos.azurewebsites.net/account/token?username=" + login + "&password=" + password;
+        var url = "https://linkedextender.azurewebsites.net/account/token?username=" + login + "&password=" + password;
         let xhr = new XMLHttpRequest();
         xhr.open('GET', url);
         xhr.onload = function()

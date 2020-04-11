@@ -52,7 +52,6 @@
     "https://*.linkedin.com/*",
     "http://www.linkedin.com/*",
     "https://www.linkedin.com/*",
-    "https://fitstapp.azurewebsites.net/*",
     "webNavigation",
     "downloads"
   ],

@@ -1231,25 +1231,23 @@ function invitedList(setState)
                             throw("Invite button hasn't been found.");
                     }
                     if(inviteBtn.disabled)
-                        throw("Invite button is disabled.")
-                    inviteBtn.click();
-                    await sleep(1000);
+                        throw("Invite button is disabled.");
+                    inviteBtn.click();                    
                     var addNoteBtn = document.getElementsByClassName(AddNoteBtnClass)[0];
                     if(addNoteBtn == undefined)
                         throw("Add Note button hasn't been found.");
                     addNoteBtn.click();
-                    await sleep(1000);
                     var textArea = document.getElementsByClassName(TextAreaClass)[0];
                     if(textArea == undefined)
                         throw("Text area hasn't been found.");
-                    setTextToLinkedinInput(textArea, msg); 
-                    await sleep(1000);
+                    setTextToLinkedinInput(textArea, msg);
                     var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
                     if(sentBtn == undefined)
                         throw("Sent button hasn't been found.");
                     if(sentBtn.disabled)
                         throw("Sent button is disabled.")
                     sentBtn.click();
+                    await sleep(3000);
                 }
                 else
                 {
@@ -1259,18 +1257,17 @@ function invitedList(setState)
                     if(inviteBtn.disabled)
                         throw("Invite button is disabled.")
                     inviteBtn.click();
-                    await sleep(1000);
                     var textArea = document.getElementsByClassName('ember-text-area ember-view')[0];
                     if(textArea == undefined)
                         throw("Text area hasn't been found.");
                     setTextToLinkedinInput(textArea, msg);
-                    await sleep(1000);
                     var sentBtn = document.getElementsByClassName('button-primary-medium connect-cta-form__send')[0];
                     if(sentBtn == undefined)
                         throw("Sent button hasn't been found.");
                     if(sentBtn.disabled)
                         throw("Sent button is disabled.")
                     sentBtn.click();
+                    await sleep(2000);
                 }
             }
             catch(e)

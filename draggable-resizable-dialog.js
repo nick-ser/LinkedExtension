@@ -1463,7 +1463,7 @@ function DialogBox(id, needSignin)
 		_dialog.style.visibility = 'visible'; // and undo visibility = 'hidden'
 
         _dialogTitle.tabIndex = '0';
-        //loadDialogSettings();
+        loadDialogSettings();
 
         var iniviteNumInput = document.getElementById("invitationNumber");
         setInputFilter(iniviteNumInput, function(value) 
@@ -1821,26 +1821,6 @@ function DialogBox(id, needSignin)
     {
         if (_dialog != null)
         {
-            chrome.storage.local.get('dialogState', function (result)
-            {
-                _isMinimized = result.dialogState;
-                if (_isMinimized == false)
-                    maximizeDialogContent();
-                else
-                    minimizeDialogContent();
-                _isMinimized != _isMinimized;
-            });
-
-            chrome.storage.local.get('relativeTop', function (result)
-            {
-                var relativeTop = result.relativeTop;
-                _dialog.style.top = window.innerHeight * relativeTop + window.scrollY + 'px';
-            });
-            chrome.storage.local.get('relativeLeft', function (result)
-            {
-                var relativeLeft = result.relativeLeft;
-                _dialog.style.left = window.innerWidth * relativeLeft + window.scrollX + 'px';
-            });
             chrome.storage.local.get('invitationNum', function (result)
             {
                 if(result['invitationNum'] == undefined || result['invitationNum'] == '')

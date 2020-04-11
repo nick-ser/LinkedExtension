@@ -80,7 +80,6 @@ function createSetupDialog(signout)
                 signout(false);
                 this.closeSetupDialog();
             }.bind(this);
-            //document.getElementById("skipCountsBtn").onclick = this.skipCounts;
             document.getElementById('delimiterSelect').addEventListener('change', (event) =>
             {
                 this.setDelimiter(event.target.value);;
