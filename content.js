@@ -16,7 +16,7 @@ async function buildDialog(type)
         prevHeight = window.innerHeight;
         prevWidth = window.innerWidth;
         var rootDiv = document.createElement('div')
-        rootDiv.setAttribute("style", "width:304px; height:195px;");
+        rootDiv.setAttribute("style", "width:230px; height:32px;");
         rootDiv.setAttribute("role", "main");
         rootDiv.className = 'dialog';        
         rootDiv.id = 'customDialog';
@@ -50,7 +50,7 @@ async function buildDialog(type)
                         <button class="signin" type=submit name="signin">Sign In</button>
                     </div>
                 </div>
-                <div class="customRootPanel"  style="visibility:visible;">
+                <div class="customRootPanel"  style="visibility:hidden; display:none">
                     <div style="margin-top: 1px; height: 32px;">
                         <button id="invitationsBtn" style="margin-right: 1px;" class="tablink">Invitations</button>
                         <button id="msgBtn" class="tablink" style="margin-right: 1px;">Messages</button>

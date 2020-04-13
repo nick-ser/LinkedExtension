@@ -895,8 +895,7 @@ function DialogBox(id, needSignin)
                         _needSignin = false;
                         _token = obj.token;
                         _signinContent.style.visibility = 'hidden';
-                        _dialogContent.style.visibility = 'visible';
-                        _dialogContent.style.display = 'block';
+                        minimizeOrMaximizeWnd();
                         document.getElementById('wrongPwdLabel').style.visibility = 'hidden';
                         getAccountInfo(login, password);
                     }
@@ -1408,12 +1407,9 @@ function DialogBox(id, needSignin)
 
         document.getElementById('customDialogMinimizeBtn').onclick = function()
         {
-            if (_isMinimized == false)
-                minimizeDialogContent();
-            else
-                maximizeDialogContent();            
             _isMinimized = !_isMinimized;
-            //saveDialogSettings();
+            minimizeOrMaximizeWnd();
+            saveDialogSettings();
         }.bind(this);
 
         document.getElementById(invitationsList).addEventListener('change', (event) =>
@@ -1458,10 +1454,7 @@ function DialogBox(id, needSignin)
         openPanel('invitePnl', invitationsBtn);
                 
 		setDialogContent();		
-		
-		_dialog.style.display = 'none'; // Let's hide it again..
-		_dialog.style.visibility = 'visible'; // and undo visibility = 'hidden'
-
+	
         _dialogTitle.tabIndex = '0';
         loadDialogSettings();
 
@@ -1534,8 +1527,18 @@ function DialogBox(id, needSignin)
             calcDialogPos(_last_known_scroll_position - tmp);
         });
 
-        _zIndex = _dialog.style.zIndex;        
+        _zIndex = _dialog.style.zIndex;
+        _dialog.style.display = 'none'; // Let's hide it again..
+		_dialog.style.visibility = 'visible'; // and undo visibility = 'hidden'
     };
+
+    function minimizeOrMaximizeWnd()
+    {
+        if (_isMinimized == false)
+            minimizeDialogContent();
+        else
+            maximizeDialogContent();
+    }
 
     function calcDialogPos(scroll_pos)
     {        
@@ -1811,8 +1814,8 @@ function DialogBox(id, needSignin)
     {
         if (_dialog != null)
         {
-            chrome.storage.local.set({ 'relativeTop': (parseFloat(_dialog.style.top) - window.scrollY) / window.innerHeight });
-            chrome.storage.local.set({ 'relativeLeft': (parseFloat(_dialog.style.left) - window.scrollX) / window.innerWidth });            
+            //chrome.storage.local.set({ 'relativeTop': (parseFloat(_dialog.style.top) - window.scrollY) / window.innerHeight });
+            //chrome.storage.local.set({ 'relativeLeft': (parseFloat(_dialog.style.left) - window.scrollX) / window.innerWidth });            
             chrome.storage.local.set({ 'dialogState': _isMinimized });
         }
     };
@@ -1821,6 +1824,14 @@ function DialogBox(id, needSignin)
     {
         if (_dialog != null)
         {
+            chrome.storage.local.get('dialogState', function (result)
+            {
+                if(result['dialogState'] == undefined)
+                    _isMinimized  = true;
+                else
+                    _isMinimized = result['dialogState'];
+                minimizeOrMaximizeWnd();
+            });
             chrome.storage.local.get('invitationNum', function (result)
             {
                 if(result['invitationNum'] == undefined || result['invitationNum'] == '')

@@ -171,13 +171,19 @@ function invitedList(setState)
                 var invited = this.source.people.filter(person => person.isInvited);
                 if(invited != undefined && invited.length > 0)
                 {
-                    downloadBtn.disabled = false;
-                    downloadBtn.style = 'background-color: #39c';
+                    if(downloadBtn.style.display != 'none')
+                    {
+                        downloadBtn.disabled = false;
+                        downloadBtn.style = 'background-color: #39c';
+                    }
                 }
                 else
                 {
-                    downloadBtn.disabled = true;
-                    downloadBtn.style = 'background-color: gray'; 
+                    if(downloadBtn.style.display != 'none')
+                    {
+                        downloadBtn.disabled = true;
+                        downloadBtn.style = 'background-color: gray'; 
+                    }
                 }
                 this.setState(CollectStateEnum.none);
                 _isCanceld = true;
@@ -412,7 +418,7 @@ function invitedList(setState)
                 return Math.random() * (80000 - 60000) + 60000;
             break;
             case SecurityLevelEnum.low:
-                return Math.random() * (50000 - 30000) + 30000;
+                return Math.random() * (20000 - 10000) + 10000;
             break;
         }
     }.bind(this);
@@ -1232,21 +1238,36 @@ function invitedList(setState)
                     }
                     if(inviteBtn.disabled)
                         throw("Invite button is disabled.");
-                    inviteBtn.click();                    
-                    var addNoteBtn = document.getElementsByClassName(AddNoteBtnClass)[0];
-                    if(addNoteBtn == undefined)
-                        throw("Add Note button hasn't been found.");
-                    addNoteBtn.click();
+                    inviteBtn.click();
+
                     var textArea = document.getElementsByClassName(TextAreaClass)[0];
-                    if(textArea == undefined)
-                        throw("Text area hasn't been found.");
-                    setTextToLinkedinInput(textArea, msg);
-                    var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
-                    if(sentBtn == undefined)
-                        throw("Sent button hasn't been found.");
-                    if(sentBtn.disabled)
-                        throw("Sent button is disabled.")
-                    sentBtn.click();
+                    if(textArea != undefined)
+                    {
+                        setTextToLinkedinInput(textArea, msg);
+                        var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
+                        if(sentBtn == undefined)
+                            throw("Sent button hasn't been found.");
+                        if(sentBtn.disabled)
+                            throw("Sent button is disabled.")
+                        sentBtn.click();
+                    }
+                    else
+                    {
+                        var addNoteBtn = document.getElementsByClassName(AddNoteBtnClass)[0];
+                        if(addNoteBtn == undefined)
+                            throw("Add Note button hasn't been found.");
+                        addNoteBtn.click();
+                        var textArea = document.getElementsByClassName(TextAreaClass)[0];
+                        if(textArea == undefined)
+                            throw("Text area hasn't been found.");
+                        setTextToLinkedinInput(textArea, msg);
+                        var sentBtn = document.getElementsByClassName(SentButtonClass)[0];
+                        if(sentBtn == undefined)
+                            throw("Sent button hasn't been found.");
+                        if(sentBtn.disabled)
+                            throw("Sent button is disabled.")
+                        sentBtn.click();
+                    }
                     await sleep(3000);
                 }
                 else
