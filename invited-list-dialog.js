@@ -18,11 +18,10 @@ function invitedList(setState)
     const MaxInvitationSentCount = 100;
     const MaxMessagingCount = 100;
     const MaxCsvCount = 100;
-    const SendMessageBtnClass = "pv-s-profile-actions pv-s-profile-actions--message ml2 artdeco-button artdeco-button--2 artdeco-button--primary ember-view";
+    const SendMessageBtnClass = "message-anywhere-button pv-s-profile-actions pv-s-profile-actions--message ml2 artdeco-button artdeco-button--2 artdeco-button--primary";
     const CloseSendMsgWindowBtnClass = "msg-overlay-bubble-header__control js-msg-close artdeco-button artdeco-button--circle artdeco-button--inverse artdeco-button--1 artdeco-button--tertiary ember-view";
     const MsgTextAreaClass = "msg-form__contenteditable t-14 t-black--light t-normal flex-grow-1 notranslate";
     const DoSendMsgBtnClass = "msg-form__send-button artdeco-button artdeco-button--1";
-
     let _table = null,
     _rootDiv = null,
     _filterByName = null,
@@ -1122,7 +1121,7 @@ function invitedList(setState)
                 window.history.forward();
                 var delay = Math.round(this.getDelay());
                 await sleep(delay);
-
+/*
                 var delta = document.body.scrollHeight / DocumentScrollDelta;
                 var offset = 0.0;
                 for (let j = 0; j < DocumentScrollDelta; j++)
@@ -1132,32 +1131,33 @@ function invitedList(setState)
                     await sleep(j*1000);
                 }
                 window.scrollTo(0, 0);
-
+*/
                 var sendMsgBtn = document.getElementsByClassName(SendMessageBtnClass)[0];
                 if(sendMsgBtn == undefined)
                     throw("Send msg button hasn't been found.");
                 if(sendMsgBtn.disabled)
                     throw("Send msg button is disabled.")
                 sendMsgBtn.click();
-                await sleep(1000);
+                await sleep(4000);
 
                 var msgDiv = document.getElementsByClassName(MsgTextAreaClass)[0];
                 if(msgDiv == undefined)
                     throw("Message text area hasn't been found.");
                 SetTextToLinkedinMsgWnd(msgDiv, msg);
-                await sleep(1000);
+                await sleep(2000);
                 var sentBtn = document.getElementsByClassName(DoSendMsgBtnClass)[0];
                 if(sentBtn == undefined)
                     throw("Msg sent button hasn't been found.");
                 if(sentBtn.disabled)
-                    throw("Msg sent button is disabled.")
+                    throw("Msg sent button is disabled.");
                 sentBtn.click();
-
                 await sleep(1000);
+
                 var closeSendMsgBtn = document.getElementsByClassName(CloseSendMsgWindowBtnClass)[0];
                 if(closeSendMsgBtn == undefined)
                     throw("Close send msg window button hasn't been found.");
                 closeSendMsgBtn.click();
+                await sleep(1000);
             }
             catch(e)
             {
