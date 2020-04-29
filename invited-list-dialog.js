@@ -411,10 +411,10 @@ function invitedList(setState)
         switch(this.securityLevel)
         {
             case SecurityLevelEnum.safe:
-                return Math.random() * (110000 - 90000) + 90000;
+                return Math.random() * (40000 - 30000) + 30000;
             break;
             case SecurityLevelEnum.medium:
-                return Math.random() * (80000 - 60000) + 60000;
+                return Math.random() * (30000 - 20000) + 20000;
             break;
             case SecurityLevelEnum.low:
                 return Math.random() * (20000 - 10000) + 10000;
@@ -1121,17 +1121,7 @@ function invitedList(setState)
                 window.history.forward();
                 var delay = Math.round(this.getDelay());
                 await sleep(delay);
-/*
-                var delta = document.body.scrollHeight / DocumentScrollDelta;
-                var offset = 0.0;
-                for (let j = 0; j < DocumentScrollDelta; j++)
-                {
-                    offset += delta;
-                    window.scrollTo(0, offset);
-                    await sleep(j*1000);
-                }
-                window.scrollTo(0, 0);
-*/
+                
                 var sendMsgBtn = document.getElementsByClassName(SendMessageBtnClass)[0];
                 if(sendMsgBtn == undefined)
                     throw("Send msg button hasn't been found.");
